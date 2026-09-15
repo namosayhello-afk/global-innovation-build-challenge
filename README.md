@@ -16,6 +16,8 @@ The dashboard accepts an abdominal ECG waveform (CSV or TXT) and implements an e
 6. Optionally compare predicted candidate beats against a separate reference-annotation file.
 7. Export the transformed signals for reproducible analysis.
 
+The app also includes a small supervised candidate-ranking model trained by `scripts/train_candidate_ranker.py`. It ranks signal-processing candidates; it is an experimental research component, not a diagnosis model. The training script uses public ADFECGDB data and is designed to accept more verified records as they are added.
+
 The default recording is synthetic and has labelled fetal beat times so the evaluation panel can be demonstrated safely. Its results are deliberately labelled **demo-only** and must never be presented as real performance.
 
 ## Run it
@@ -24,6 +26,13 @@ The default recording is synthetic and has labelled fetal beat times so the eval
 source .venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
+```
+
+To recreate the experimental training model after downloading the public ADFECGDB record(s):
+
+```bash
+pip install pyedflib wfdb
+python -m scripts.train_candidate_ranker --records data/adfecgdb/r01.edf
 ```
 
 ## Two-minute judge demo

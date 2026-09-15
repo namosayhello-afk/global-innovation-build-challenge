@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from fetalsignal.demo_data import make_demo_recording
+from fetalsignal.ml import select_model_candidates
 from fetalsignal.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
@@ -146,9 +147,9 @@ def make_export(time: np.ndarray, raw: np.ndarray, result) -> bytes:
     return pd.DataFrame({"time_seconds": time, "raw_abdominal_ecg": raw, "filtered_ecg": result.cleaned, "maternal_template_estimate": result.maternal_component, "fetal_candidate_signal": result.residual}).to_csv(index=False).encode("utf-8")
 
 
-def make_annotation_export(time: np.ndarray, result) -> bytes:
-    fetal_times = time[result.fetal_peaks]
-    return pd.DataFrame({"candidate_beat_sample": result.fetal_peaks, "candidate_beat_time_seconds": fetal_times}).to_csv(index=False).encode("utf-8")
+def make_annotation_export(time: np.ndarray, peaks: np.ndarray) -> bytes:
+    fetal_times = time[peaks]
+    return pd.DataFrame({"candidate_beat_sample": peaks, "candidate_beat_time_seconds": fetal_times}).to_csv(index=False).encode("utf-8")
 
 
 def make_report(data_note: str, sample_rate: float, fetal_bpm: float | None, maternal_bpm: float | None, result) -> bytes:
@@ -249,16 +250,19 @@ else:
 
 if raw_signal is not None and time is not None:
     result = extract_fetal_signal(raw_signal, sample_rate, powerline)
-    fetal_bpm, maternal_bpm = heart_rate_bpm(result.fetal_peaks, sample_rate), heart_rate_bpm(result.maternal_peaks, sample_rate)
+    fetal_peaks, model_probabilities = select_model_candidates(result.residual, result.fetal_peaks, sample_rate)
+    fetal_bpm, maternal_bpm = heart_rate_bpm(fetal_peaks, sample_rate), heart_rate_bpm(result.maternal_peaks, sample_rate)
     label, label_class = quality_label(result.quality_score)
     st.markdown("<div class='section-label'>Analysis workspace</div>", unsafe_allow_html=True)
     title_col, status_col = st.columns([5, 1.2], vertical_alignment="center")
     title_col.markdown("## Your signal, unpacked")
     status_col.markdown(f"<span class='status-pill {label_class}'>{label}</span>", unsafe_allow_html=True)
     st.caption(data_note)
+    if model_probabilities is not None:
+        st.caption("ML-assisted candidate ranking is enabled. It is an experimental research model and falls back to the signal-processing baseline when its filtering would be too aggressive.")
     metric_columns = st.columns(4)
     metric_columns[0].metric("Fetal candidate rate", metric_value(fetal_bpm))
-    metric_columns[1].metric("Candidate beats", f"{result.fetal_peaks.size}")
+    metric_columns[1].metric("Candidate beats", f"{fetal_peaks.size}")
     metric_columns[2].metric("Maternal rate", metric_value(maternal_bpm))
     metric_columns[3].metric("Signal quality", f"{result.quality_score:.0f} / 100")
 
@@ -275,12 +279,12 @@ if raw_signal is not None and time is not None:
         end_index = min(raw_signal.size, int(np.searchsorted(time, start_second + preview_seconds, side="right")))
         local_time = time[start_index:end_index]
         raw_peaks = result.maternal_peaks[(result.maternal_peaks >= start_index) & (result.maternal_peaks < end_index)] - start_index
-        fetal_peaks = result.fetal_peaks[(result.fetal_peaks >= start_index) & (result.fetal_peaks < end_index)] - start_index
+        displayed_fetal_peaks = fetal_peaks[(fetal_peaks >= start_index) & (fetal_peaks < end_index)] - start_index
         left, right = st.columns(2)
         left.plotly_chart(ecg_chart(local_time, raw_signal[start_index:end_index], "Abdominal ECG mixture", "#75d9ff", raw_peaks), width="stretch")
-        right.plotly_chart(ecg_chart(local_time, result.residual[start_index:end_index], "Fetal cardiac-signal candidate", "#aa9dff", fetal_peaks), width="stretch")
+        right.plotly_chart(ecg_chart(local_time, result.residual[start_index:end_index], "Fetal cardiac-signal candidate", "#aa9dff", displayed_fetal_peaks), width="stretch")
         st.markdown("<p class='caption'>Markers indicate algorithmic candidate peaks. They are not confirmed fetal beats unless compared with an appropriate reference annotation set.</p>", unsafe_allow_html=True)
-        centers, rates = rolling_heart_rate(result.fetal_peaks, sample_rate, float(time[-1] - time[0]))
+        centers, rates = rolling_heart_rate(fetal_peaks, sample_rate, float(time[-1] - time[0]))
         if centers.size:
             st.markdown("### Candidate rhythm over time")
             st.plotly_chart(rhythm_chart(centers, rates), width="stretch")
@@ -290,15 +294,15 @@ if raw_signal is not None and time is not None:
         left, right = st.columns(2)
         left.plotly_chart(ecg_chart(time, result.cleaned, "1 · Filtered abdominal ECG", "#74e7c9"), width="stretch")
         right.plotly_chart(ecg_chart(time, result.maternal_component, "2 · Estimated maternal pattern", "#ff9ec3"), width="stretch")
-        st.plotly_chart(ecg_chart(time, result.residual, "3 · Residual fetal candidate signal", "#b1a8ff", result.fetal_peaks), width="stretch")
+        st.plotly_chart(ecg_chart(time, result.residual, "3 · Residual fetal candidate signal", "#b1a8ff", fetal_peaks), width="stretch")
         download_one, download_two, download_three = st.columns(3)
         download_one.download_button("Processed waveform CSV", make_export(time, raw_signal, result), "fetalsignal_processed.csv", "text/csv", width="stretch")
-        download_two.download_button("Candidate-beat CSV", make_annotation_export(time, result), "fetalsignal_candidate_beats.csv", "text/csv", width="stretch")
+        download_two.download_button("Candidate-beat CSV", make_annotation_export(time, fetal_peaks), "fetalsignal_candidate_beats.csv", "text/csv", width="stretch")
         download_three.download_button("Analysis report", make_report(data_note, sample_rate, fetal_bpm, maternal_bpm, result), "fetalsignal_report.txt", "text/plain", width="stretch")
     with validation_tab:
         st.markdown("### Evidence, not guesses")
         if reference is not None and reference.size:
-            metrics = match_peaks(result.fetal_peaks, reference, sample_rate)
+            metrics = match_peaks(fetal_peaks, reference, sample_rate)
             reference_bpm = heart_rate_bpm(reference, sample_rate)
             rate_error = abs(fetal_bpm - reference_bpm) if fetal_bpm is not None and reference_bpm is not None else None
             one, two, three, four = st.columns(4)

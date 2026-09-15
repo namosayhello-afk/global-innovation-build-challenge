@@ -1,0 +1,3 @@
+-r requirements.txt
+pyedflib>=0.1.39
+wfdb>=4.3
