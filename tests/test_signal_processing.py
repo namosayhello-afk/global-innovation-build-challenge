@@ -1,7 +1,7 @@
 import numpy as np
 
-from src.demo_data import make_demo_recording
-from src.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
+from fetalsignal.demo_data import make_demo_recording
+from fetalsignal.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
 def test_demo_pipeline_returns_finite_signals():

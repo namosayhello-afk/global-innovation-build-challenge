@@ -12,8 +12,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.demo_data import make_demo_recording
-from src.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
+from fetalsignal.demo_data import make_demo_recording
+from fetalsignal.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
 st.set_page_config(page_title="FetalSignal AI", page_icon="✦", layout="wide", initial_sidebar_state="expanded")

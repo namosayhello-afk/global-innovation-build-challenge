@@ -52,8 +52,8 @@ Useful starting points:
 
 ```
 app.py                    Streamlit dashboard
-src/demo_data.py          Synthetic labelled demo generator
-src/signal_processing.py  Explainable signal-processing baseline
+fetalsignal/demo_data.py          Synthetic labelled demo generator
+fetalsignal/signal_processing.py  Explainable signal-processing baseline
 requirements.txt          Dashboard dependencies
 ```
 
