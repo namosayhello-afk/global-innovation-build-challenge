@@ -51,7 +51,7 @@ def inject_style() -> None:
             [data-testid="stMetric"] { background: rgba(255, 255, 255, .055); border: 1px solid var(--line); padding: 1rem 1.08rem; border-radius: 15px; }
             [data-testid="stMetricLabel"] { color: #9fb2c5; font-size: .77rem; }
             [data-testid="stMetricValue"] { color: #f6fbff; font-size: 1.55rem; font-weight: 750; }
-            .status-pill { display: inline-block; border-radius: 99px; padding: .32rem .65rem; font: 500 .7rem 'DM Mono', monospace; letter-spacing: .05em; }
+            .status-pill { display: inline-block; max-width: 100%; box-sizing: border-box; border-radius: 99px; padding: .42rem .7rem; font: 500 .7rem 'DM Mono', monospace; letter-spacing: .04em; line-height: 1.35; text-align: center; white-space: normal; }
             .status-good { background: rgba(118, 240, 207, .13); color: #76f0cf; border: 1px solid rgba(118, 240, 207, .3); }
             .status-watch { background: rgba(255, 207, 112, .12); color: #ffd98a; border: 1px solid rgba(255, 207, 112, .28); }
             .status-low { background: rgba(255, 139, 159, .12); color: #ff9caf; border: 1px solid rgba(255, 139, 159, .25); }
@@ -60,10 +60,11 @@ def inject_style() -> None:
             .stTabs [data-baseweb="tab-list"] { gap: 2rem; border-bottom: 1px solid var(--line); }
             .stTabs [data-baseweb="tab"] { background: transparent; padding: .8rem 0; color: #93a9bc; font-weight: 700; }
             .stTabs [aria-selected="true"] { color: #76f0cf !important; }
-            .stButton > button, .stDownloadButton > button { border-radius: 10px; font-weight: 700; border: 1px solid rgba(118, 240, 207, .42); background: linear-gradient(135deg, #75e8cb, #a29aff); color: #07111d; }
+            .stButton > button, .stDownloadButton > button { min-height: 2.75rem; white-space: normal; line-height: 1.25; border-radius: 10px; font-weight: 700; border: 1px solid rgba(118, 240, 207, .42); background: linear-gradient(135deg, #75e8cb, #a29aff); color: #07111d; }
             .stButton > button:hover, .stDownloadButton > button:hover { border-color: #eaffff; color: #07111d; }
             .stAlert { border-radius: 13px; }
-            @media (max-width: 760px) { .step-row { grid-template-columns: 1fr; } .hero-orb { width: 190px; } }
+            [data-testid="stMetric"], .panel, .step-card { overflow-wrap: anywhere; }
+            @media (max-width: 760px) { .step-row { grid-template-columns: 1fr; } .hero-orb { width: 190px; } h1 { font-size: 2.9rem !important; } }
         </style>
         """,
         unsafe_allow_html=True,
@@ -81,7 +82,7 @@ def ecg_chart(time: np.ndarray, signal: np.ndarray, title: str, color: str, peak
 
 def rhythm_chart(centers: np.ndarray, rates: np.ndarray) -> go.Figure:
     figure = go.Figure()
-    figure.add_hrect(y0=110, y1=160, fillcolor="rgba(118, 240, 207, .07)", line_width=0, annotation_text="candidate-rate review band", annotation_position="top left", annotation_font_color="#94c9bb")
+    figure.add_hrect(y0=110, y1=160, fillcolor="rgba(118, 240, 207, .07)", line_width=0)
     figure.add_trace(go.Scatter(x=centers, y=rates, mode="lines+markers", line=dict(color="#76f0cf", width=2), marker=dict(size=6, color="#b7abff"), connectgaps=False, hovertemplate="%{x:.1f} s<br>%{y:.0f} BPM<extra></extra>"))
     figure.update_layout(template="plotly_dark", height=220, margin=dict(l=6, r=6, t=30, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.025)", xaxis=dict(title="Window center (seconds)", gridcolor="rgba(189,210,226,.09)"), yaxis=dict(title="Candidate BPM", gridcolor="rgba(189,210,226,.09)", range=[80, 230]), showlegend=False)
     return figure
@@ -165,6 +166,28 @@ Signal-quality heuristic: {result.quality_score:.0f} / 100
 Interpretation: This is a signal-processing output for de-identified research data. It is not a diagnosis, a clinical confidence value, or a medical-device reading. Candidate beats should be validated against an appropriate reference annotation set before reporting performance.
 """
     return report.encode("utf-8")
+
+
+def explain_result(fetal_bpm: float | None, quality_score: float, candidate_count: int, model_enabled: bool) -> tuple[str, str, str]:
+    """Translate research output into plain language without clinical claims."""
+    model_note = " An experimental ML candidate-ranker reviewed the detected peaks." if model_enabled else " The baseline signal-processing detector selected the peaks."
+    if fetal_bpm is None or candidate_count < 3:
+        return (
+            "No stable candidate rhythm was found",
+            "The app could not find enough repeating peaks in the residual signal to estimate a candidate rate. This can happen when the recording is short, noisy, or the maternal pattern is not cleanly separable.",
+            "Try a longer, cleaner research waveform; confirm the sampling rate; then inspect the raw and residual charts before drawing any conclusion.",
+        )
+    if quality_score >= 75:
+        return (
+            "A regular candidate pattern was found",
+            f"The app found {candidate_count} repeating candidate peaks after reducing the maternal-pattern estimate. Their median interval corresponds to an estimated candidate rate of {fetal_bpm:.0f} BPM.{model_note}",
+            "Inspect the markers against the residual waveform. For research reporting, upload separate reference annotations and use the Validation tab rather than treating this as a medical reading.",
+        )
+    return (
+        "A candidate pattern was found, but it needs review",
+        f"The app found {candidate_count} candidate peaks and estimates {fetal_bpm:.0f} BPM, but the signal-quality heuristic is only {quality_score:.0f}/100. Noise or imperfect maternal-pattern removal may be influencing the result.{model_note}",
+        "Use the Signal lab to inspect the markers, then validate against separate reference annotations. Do not interpret this result as a patient assessment.",
+    )
 
 
 def switch_to_upload_mode() -> None:
@@ -254,7 +277,7 @@ if raw_signal is not None and time is not None:
     fetal_bpm, maternal_bpm = heart_rate_bpm(fetal_peaks, sample_rate), heart_rate_bpm(result.maternal_peaks, sample_rate)
     label, label_class = quality_label(result.quality_score)
     st.markdown("<div class='section-label'>Analysis workspace</div>", unsafe_allow_html=True)
-    title_col, status_col = st.columns([5, 1.2], vertical_alignment="center")
+    title_col, status_col = st.columns([3.8, 2.2], vertical_alignment="center")
     title_col.markdown("## Your signal, unpacked")
     status_col.markdown(f"<span class='status-pill {label_class}'>{label}</span>", unsafe_allow_html=True)
     st.caption(data_note)
@@ -265,6 +288,13 @@ if raw_signal is not None and time is not None:
     metric_columns[1].metric("Candidate beats", f"{fetal_peaks.size}")
     metric_columns[2].metric("Maternal rate", metric_value(maternal_bpm))
     metric_columns[3].metric("Signal quality", f"{result.quality_score:.0f} / 100")
+    explanation_title, explanation_text, next_step = explain_result(fetal_bpm, result.quality_score, fetal_peaks.size, model_probabilities is not None)
+    st.markdown("### What this result means")
+    explanation_col, next_col = st.columns(2)
+    with explanation_col:
+        st.markdown(f"<div class='panel'><b>{explanation_title}</b><p class='caption'>{explanation_text}</p></div>", unsafe_allow_html=True)
+    with next_col:
+        st.markdown(f"<div class='panel'><b>What to do next</b><p class='caption'>{next_step}</p></div>", unsafe_allow_html=True)
 
     overview_tab, signals_tab, validation_tab, method_tab = st.tabs(["Overview", "Signal lab", "Validation", "Method"])
     with overview_tab:
