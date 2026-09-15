@@ -166,13 +166,18 @@ Interpretation: This is a signal-processing output for de-identified research da
     return report.encode("utf-8")
 
 
+def switch_to_upload_mode() -> None:
+    """Switch the radio input before the next Streamlit script run."""
+    st.session_state.source_mode = "Upload signal data"
+
+
 inject_style()
 
 with st.sidebar:
     st.markdown("<div class='brand-row'><span class='spark'>✦</span> FetalSignal AI</div>", unsafe_allow_html=True)
     st.divider()
     st.markdown("### Data lab")
-    source = st.radio("Choose a recording", ["Try the interactive demo", "Upload signal data"], label_visibility="collapsed")
+    source = st.radio("Choose a recording", ["Try the interactive demo", "Upload signal data"], key="source_mode", label_visibility="collapsed")
     st.caption("FetalSignal reads waveform data—not a screenshot of an ECG chart.")
     if source == "Try the interactive demo":
         st.markdown("#### Demo controls")
@@ -181,12 +186,11 @@ with st.sidebar:
         sample_rate = st.selectbox("Sample rate", [250, 500, 1_000], index=1, format_func=lambda value: f"{value} Hz")
         powerline, reference_upload = 50, None
     else:
-        st.markdown("#### Upload waveform data")
-        uploaded = st.file_uploader("CSV or TXT data file", type=["csv", "txt"], help="One sample per row; use a column header for each ECG lead.")
+        st.markdown("#### Recording settings")
         sample_rate = st.number_input("Sampling rate (Hz)", min_value=100, max_value=2_000, value=500, step=50)
         powerline = st.selectbox("Electrical interference", [50, 60], format_func=lambda value: f"{value} Hz")
-        reference_upload = st.file_uploader("Optional reference beat file", type=["csv", "txt"], help="First numeric column: beat times in seconds or sample indices.")
-        st.caption("Use de-identified, research-approved data only. Files are processed in the current app session.")
+        reference_upload = None
+        st.caption("Set the recording rate here, then upload the waveform in the main workspace.")
 
 hero_left, hero_right = st.columns([1.55, .75], vertical_alignment="center")
 with hero_left:
@@ -194,10 +198,24 @@ with hero_left:
     st.title("Find the rhythm\ninside the noise.")
     st.markdown("<p class='hero-copy'>FetalSignal AI helps researchers explore an <strong>abdominal ECG waveform</strong>, reduce the dominant maternal pattern, and inspect a fetal cardiac-signal candidate—visually, transparently, and without overclaiming.</p>", unsafe_allow_html=True)
     st.markdown("<div class='safe-note'>For research and education only. This prototype is not a medical device and cannot diagnose, monitor, or make decisions for a patient.</div>", unsafe_allow_html=True)
+    if source == "Try the interactive demo":
+        st.button("Upload an ECG recording", type="primary", key="hero_upload", on_click=switch_to_upload_mode)
 with hero_right:
     st.markdown("<div class='hero-orb'><div class='orb-line'>ABDOMINAL ECG<br>↓<br>FETAL CANDIDATE</div></div>", unsafe_allow_html=True)
 
 st.markdown("""<div class='step-row'><div class='step-card'><div class='step-number'>01 · INPUT</div><b>Bring a waveform</b><span>Upload a CSV/TXT ECG signal or begin with a synthetic, labelled demo.</span></div><div class='step-card'><div class='step-number'>02 · SEPARATE</div><b>Reduce the dominant pattern</b><span>Filter the mixture, estimate maternal beats, then inspect the residual signal.</span></div><div class='step-card'><div class='step-number'>03 · EXPLORE</div><b>Review, validate, export</b><span>Examine candidate beats, calculate metrics, and download the transformed waveform.</span></div></div>""", unsafe_allow_html=True)
+
+uploaded = None
+if source == "Upload signal data":
+    st.markdown("<div class='section-label'>Start an analysis</div>", unsafe_allow_html=True)
+    st.markdown("## Upload an abdominal ECG recording")
+    upload_col, result_col = st.columns([1.15, .85], vertical_alignment="center")
+    with upload_col:
+        uploaded = st.file_uploader("1. Choose your waveform file", type=["csv", "txt"], help="Use one row per sample and a header for each ECG lead.")
+        reference_upload = st.file_uploader("2. Add reference beats (optional)", type=["csv", "txt"], help="First numeric column: fetal-beat times in seconds or sample indices.")
+        st.caption("We process only de-identified research data. The uploaded file stays in the current app session.")
+    with result_col:
+        st.markdown("<div class='panel'><b>What you get back</b><p class='caption'>A cleaned abdominal waveform, a maternal-pattern estimate, a fetal-signal candidate, candidate beat markers, estimated candidate BPM, signal-quality review, and downloadable results.</p><p class='caption'>Use CSV or TXT signal values—not an image or screenshot of an ECG chart.</p></div>", unsafe_allow_html=True)
 
 raw_signal: np.ndarray | None = None
 time: np.ndarray | None = None
@@ -212,7 +230,7 @@ if source == "Try the interactive demo":
     data_note = "Synthetic labelled demo · no patient data"
 else:
     if uploaded is None:
-        st.markdown("<div class='panel'><b>Ready when your data is.</b><p class='caption'>Upload a CSV or TXT waveform in the sidebar to start an analysis. A screenshot of an ECG cannot provide original sample values, so this app intentionally asks for signal data instead.</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='panel'><b>Ready when your data is.</b><p class='caption'>Choose an ECG waveform above to start. A screenshot of an ECG cannot provide original sample values, so this app intentionally asks for signal data instead.</p></div>", unsafe_allow_html=True)
     else:
         try:
             uploaded_frame = read_table(uploaded)
