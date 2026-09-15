@@ -20,6 +20,17 @@ The app also includes a small supervised candidate-ranking model trained by `scr
 
 The default recording is synthetic and has labelled fetal beat times so the evaluation panel can be demonstrated safely. Its results are deliberately labelled **demo-only** and must never be presented as real performance.
 
+## Data ethics and provenance
+
+FetalSignal AI accepts and uses only public, properly licensed, or fully de-identified research data. It must never be used with identifiable patient data, personal health records, or recordings without documented permission to use them. Uploaded files are processed only for the current app session and are not written into this repository.
+
+| Data source | Version / licence | Use in this project | Citation |
+| --- | --- | --- | --- |
+| Abdominal and Direct Fetal ECG Database (ADFECDGB), PhysioNet | Version 1.0.0; Open Data Commons Attribution License v1.0; DOI: [10.13026/C2RP4B](https://doi.org/10.13026/C2RP4B) | The experimental candidate-ranking model was trained on the public, de-identified `r01` record. The direct fetal channel and verified QRS annotations are used only as training/validation references, never as app input. | Jezewski J, Matonia A, Kupka T, Roj D, Czabanski R. *Determination of the fetal heart rate from abdominal signals: evaluation of beat-to-beat accuracy in relation to the direct fetal electrocardiogram.* Biomedical Engineering/Biomedizinische Technik. 2012;57(5):383–394. |
+| `sample_data/` files in this repository | Synthetic data generated locally by `fetalsignal/demo_data.py`; no human data or external licence required | Upload-flow demonstration only. They are never reported as model performance. | Not applicable. |
+
+The source ADFECGDB data are intentionally excluded from Git via `.gitignore`; only code, a small derived research-model artifact, and synthetic demo files are in the public repository. Before adding any new dataset, record its source URL, exact version, licence/terms, de-identification status, permitted use, and the experiment that uses it in this table.
+
 ## Run it
 
 ```bash
@@ -63,7 +74,7 @@ For final evaluation, keep fetal reference annotations separate from the input s
 
 Useful starting points:
 
-- [Abdominal and Direct Fetal ECG Database](https://physionet.org/content/adfecgdb/)
+- [Abdominal and Direct Fetal ECG Database v1.0.0 — public/de-identified, ODC-By 1.0](https://www.physionet.org/content/adfecgdb/1.0.0/)
 - [Non-Invasive Fetal ECG Database](https://physionet.org/content/nifecgdb/)
 
 ## Repository layout
@@ -84,6 +95,7 @@ requirements.txt          Dashboard dependencies
 - [ ] Run the pipeline against at least one documented public, de-identified dataset.
 - [ ] Record real precision, recall, F1, and fetal-rate error values—do not use the synthetic demo results as project performance.
 - [ ] Cite the dataset version and its licence/terms in the submission.
+- [ ] Confirm every dataset is public or fully de-identified and that the README data-provenance table is current.
 - [ ] Include a short screen recording or screenshots of the app and its signal-separation flow.
 - [ ] Keep the research-only / non-medical-device disclaimer in the presentation and submission.
 - [ ] Review and understand every reported result and implementation choice.
