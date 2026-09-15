@@ -44,6 +44,15 @@ python -m scripts.train_candidate_ranker --records data/adfecgdb/r01.edf
 5. Switch the demo noise control to **High** to demonstrate that the prototype exposes challenging signal conditions rather than hiding them.
 6. Download the waveform, candidate-beat annotations, or analysis report to show reproducibility.
 
+## Test files included
+
+Use these two synthetic files to test the upload flow without downloading any data:
+
+- `sample_data/fetalsignal_sample_recording.csv` — upload this as the abdominal ECG waveform, choose `abdominal_ecg`, and leave the sampling rate at 500 Hz.
+- `sample_data/fetalsignal_sample_reference_beats.csv` — optionally upload this as the reference-beat file to populate the validation tab.
+
+They are synthetic demonstration data only, not a performance claim or patient data.
+
 ## Using a public dataset
 
 Use public, de-identified data such as PhysioNet fetal ECG collections. Convert one abdominal ECG lead into a CSV or TXT table with one sample per row and upload it through the app. Enter the recording's actual sampling frequency. If the table includes a `time`, `timestamp`, `time_s`, `seconds`, or `t` column, the dashboard uses it for the x-axis.
