@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.demo_data import make_demo_recording
-from src.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks
+from src.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
 st.set_page_config(page_title="FetalSignal AI", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
@@ -78,6 +78,14 @@ def ecg_chart(time: np.ndarray, signal: np.ndarray, title: str, color: str, peak
     return figure
 
 
+def rhythm_chart(centers: np.ndarray, rates: np.ndarray) -> go.Figure:
+    figure = go.Figure()
+    figure.add_hrect(y0=110, y1=160, fillcolor="rgba(118, 240, 207, .07)", line_width=0, annotation_text="candidate-rate review band", annotation_position="top left", annotation_font_color="#94c9bb")
+    figure.add_trace(go.Scatter(x=centers, y=rates, mode="lines+markers", line=dict(color="#76f0cf", width=2), marker=dict(size=6, color="#b7abff"), connectgaps=False, hovertemplate="%{x:.1f} s<br>%{y:.0f} BPM<extra></extra>"))
+    figure.update_layout(template="plotly_dark", height=220, margin=dict(l=6, r=6, t=30, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(255,255,255,.025)", xaxis=dict(title="Window center (seconds)", gridcolor="rgba(189,210,226,.09)"), yaxis=dict(title="Candidate BPM", gridcolor="rgba(189,210,226,.09)", range=[80, 230]), showlegend=False)
+    return figure
+
+
 def read_table(uploaded) -> pd.DataFrame:
     """Read a CSV or delimiter-separated text signal file without persisting it."""
     try:
@@ -138,6 +146,26 @@ def make_export(time: np.ndarray, raw: np.ndarray, result) -> bytes:
     return pd.DataFrame({"time_seconds": time, "raw_abdominal_ecg": raw, "filtered_ecg": result.cleaned, "maternal_template_estimate": result.maternal_component, "fetal_candidate_signal": result.residual}).to_csv(index=False).encode("utf-8")
 
 
+def make_annotation_export(time: np.ndarray, result) -> bytes:
+    fetal_times = time[result.fetal_peaks]
+    return pd.DataFrame({"candidate_beat_sample": result.fetal_peaks, "candidate_beat_time_seconds": fetal_times}).to_csv(index=False).encode("utf-8")
+
+
+def make_report(data_note: str, sample_rate: float, fetal_bpm: float | None, maternal_bpm: float | None, result) -> bytes:
+    report = f"""FetalSignal AI — exploratory analysis report
+
+Input: {data_note}
+Sampling rate: {sample_rate} Hz
+Candidate fetal rate: {metric_value(fetal_bpm)}
+Candidate maternal rate: {metric_value(maternal_bpm)}
+Detected fetal candidate beats: {result.fetal_peaks.size}
+Signal-quality heuristic: {result.quality_score:.0f} / 100
+
+Interpretation: This is a signal-processing output for de-identified research data. It is not a diagnosis, a clinical confidence value, or a medical-device reading. Candidate beats should be validated against an appropriate reference annotation set before reporting performance.
+"""
+    return report.encode("utf-8")
+
+
 inject_style()
 
 with st.sidebar:
@@ -177,7 +205,7 @@ reference: np.ndarray | None = None
 data_note = ""
 
 if source == "Try the interactive demo":
-    noise_by_label = {"Low": 0.035, "Standard": 0.075, "High": 0.135}
+    noise_by_label = {"Low": 0.025, "Standard": 0.045, "High": 0.115}
     demo = make_demo_recording(duration_seconds=demo_length, sample_rate=int(sample_rate), noise_level=noise_by_label[demo_noise])
     raw_signal, time = demo["abdominal"], demo["time"]
     reference = np.rint(demo["fetal_reference_seconds"] * sample_rate).astype(int)
@@ -219,9 +247,14 @@ if raw_signal is not None and time is not None:
     overview_tab, signals_tab, validation_tab, method_tab = st.tabs(["Overview", "Signal lab", "Validation", "Method"])
     with overview_tab:
         preview_seconds = min(15, int(np.ceil(time[-1] - time[0])))
-        range_limit = max(0.5, float(time[-1] - preview_seconds))
-        start_second = st.slider("Inspect this section of the recording", min_value=0.0, max_value=range_limit, value=0.0, step=0.5, format="%.1f s")
-        start_index, end_index = int(start_second * sample_rate), min(raw_signal.size, int(start_second * sample_rate) + int(preview_seconds * sample_rate))
+        range_limit = float(time[-1] - preview_seconds)
+        if range_limit > 0.5:
+            start_second = st.slider("Inspect this section of the recording", min_value=0.0, max_value=range_limit, value=0.0, step=0.5, format="%.1f s")
+        else:
+            start_second = 0.0
+            st.caption("Showing the full short recording.")
+        start_index = int(np.searchsorted(time, start_second, side="left"))
+        end_index = min(raw_signal.size, int(np.searchsorted(time, start_second + preview_seconds, side="right")))
         local_time = time[start_index:end_index]
         raw_peaks = result.maternal_peaks[(result.maternal_peaks >= start_index) & (result.maternal_peaks < end_index)] - start_index
         fetal_peaks = result.fetal_peaks[(result.fetal_peaks >= start_index) & (result.fetal_peaks < end_index)] - start_index
@@ -229,13 +262,21 @@ if raw_signal is not None and time is not None:
         left.plotly_chart(ecg_chart(local_time, raw_signal[start_index:end_index], "Abdominal ECG mixture", "#75d9ff", raw_peaks), width="stretch")
         right.plotly_chart(ecg_chart(local_time, result.residual[start_index:end_index], "Fetal cardiac-signal candidate", "#aa9dff", fetal_peaks), width="stretch")
         st.markdown("<p class='caption'>Markers indicate algorithmic candidate peaks. They are not confirmed fetal beats unless compared with an appropriate reference annotation set.</p>", unsafe_allow_html=True)
+        centers, rates = rolling_heart_rate(result.fetal_peaks, sample_rate, float(time[-1] - time[0]))
+        if centers.size:
+            st.markdown("### Candidate rhythm over time")
+            st.plotly_chart(rhythm_chart(centers, rates), width="stretch")
+            st.caption("Each point summarizes candidate-peak intervals in a sliding 10-second window. Gaps mean the detector did not find enough usable intervals—not a medical event.")
     with signals_tab:
         st.markdown("### Signal-separation layers")
         left, right = st.columns(2)
         left.plotly_chart(ecg_chart(time, result.cleaned, "1 · Filtered abdominal ECG", "#74e7c9"), width="stretch")
         right.plotly_chart(ecg_chart(time, result.maternal_component, "2 · Estimated maternal pattern", "#ff9ec3"), width="stretch")
         st.plotly_chart(ecg_chart(time, result.residual, "3 · Residual fetal candidate signal", "#b1a8ff", result.fetal_peaks), width="stretch")
-        st.download_button("Download processed waveform", make_export(time, raw_signal, result), "fetalsignal_processed.csv", "text/csv", width="content")
+        download_one, download_two, download_three = st.columns(3)
+        download_one.download_button("Processed waveform CSV", make_export(time, raw_signal, result), "fetalsignal_processed.csv", "text/csv", width="stretch")
+        download_two.download_button("Candidate-beat CSV", make_annotation_export(time, result), "fetalsignal_candidate_beats.csv", "text/csv", width="stretch")
+        download_three.download_button("Analysis report", make_report(data_note, sample_rate, fetal_bpm, maternal_bpm, result), "fetalsignal_report.txt", "text/plain", width="stretch")
     with validation_tab:
         st.markdown("### Evidence, not guesses")
         if reference is not None and reference.size:

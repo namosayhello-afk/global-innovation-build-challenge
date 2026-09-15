@@ -114,6 +114,33 @@ def heart_rate_bpm(peaks: np.ndarray, sample_rate: float) -> float | None:
     return None if intervals.size == 0 else float(60 / np.median(intervals))
 
 
+def rolling_heart_rate(
+    peaks: np.ndarray,
+    sample_rate: float,
+    duration_seconds: float,
+    window_seconds: float = 10.0,
+    stride_seconds: float = 2.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return median candidate beat rates over sliding windows.
+
+    Missing windows are represented by NaN so callers can render gaps rather than
+    imply a rate where the detector did not find enough usable intervals.
+    """
+    if duration_seconds <= 0 or window_seconds <= 0 or stride_seconds <= 0:
+        return np.array([]), np.array([])
+    centers = np.arange(window_seconds / 2, duration_seconds - window_seconds / 2 + 1e-9, stride_seconds)
+    rates = np.full(centers.shape, np.nan)
+    peak_times = peaks / sample_rate
+    for index, center in enumerate(centers):
+        local = peak_times[(peak_times >= center - window_seconds / 2) & (peak_times <= center + window_seconds / 2)]
+        if local.size >= 3:
+            intervals = np.diff(local)
+            intervals = intervals[(intervals > 0.27) & (intervals < 0.8)]
+            if intervals.size:
+                rates[index] = 60 / np.median(intervals)
+    return centers, rates
+
+
 def match_peaks(predicted: np.ndarray, reference: np.ndarray, sample_rate: float, tolerance_ms: float = 80.0) -> dict[str, float | int]:
     """One-to-one annotation matching for transparent evaluation."""
     tolerance = int(sample_rate * tolerance_ms / 1000)

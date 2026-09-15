@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.demo_data import make_demo_recording
-from src.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks
+from src.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
 def test_demo_pipeline_returns_finite_signals():
@@ -20,3 +20,10 @@ def test_peak_matcher_matches_identical_annotations():
     assert metrics["recall"] == 1
     assert metrics["f1"] == 1
     assert heart_rate_bpm(peaks, 500) == 120
+
+
+def test_rolling_rate_returns_expected_rate_for_regular_beats():
+    peaks = np.arange(100, 5_100, 250)
+    centers, rates = rolling_heart_rate(peaks, sample_rate=500, duration_seconds=12)
+    assert centers.size
+    assert np.allclose(rates[~np.isnan(rates)], 120)

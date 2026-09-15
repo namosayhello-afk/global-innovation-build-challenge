@@ -26,6 +26,15 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Two-minute judge demo
+
+1. Open the app and leave **Try the interactive demo** selected.
+2. Point out the raw abdominal mixture and the fetal cardiac-signal candidate in **Overview**.
+3. Move the recording-window slider and open **Signal lab** to show each separation layer.
+4. Open **Validation** to explain why performance must be measured against separate reference annotations.
+5. Switch the demo noise control to **High** to demonstrate that the prototype exposes challenging signal conditions rather than hiding them.
+6. Download the waveform, candidate-beat annotations, or analysis report to show reproducibility.
+
 ## Using a public dataset
 
 Use public, de-identified data such as PhysioNet fetal ECG collections. Convert one abdominal ECG lead into a CSV or TXT table with one sample per row and upload it through the app. Enter the recording's actual sampling frequency. If the table includes a `time`, `timestamp`, `time_s`, `seconds`, or `t` column, the dashboard uses it for the x-axis.
@@ -51,3 +60,12 @@ requirements.txt          Dashboard dependencies
 ## AI-use disclosure
 
 > ChatGPT and OpenAI Codex were used as coding and learning assistants for implementation guidance, debugging, signal-processing explanations, and documentation. All project decisions, evaluation results, experiments, and submitted code were reviewed and understood by the team.
+
+## Before submitting
+
+- [ ] Run the pipeline against at least one documented public, de-identified dataset.
+- [ ] Record real precision, recall, F1, and fetal-rate error values—do not use the synthetic demo results as project performance.
+- [ ] Cite the dataset version and its licence/terms in the submission.
+- [ ] Include a short screen recording or screenshots of the app and its signal-separation flow.
+- [ ] Keep the research-only / non-medical-device disclaimer in the presentation and submission.
+- [ ] Review and understand every reported result and implementation choice.
