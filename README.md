@@ -68,6 +68,8 @@ The current reproducible evaluation is saved in [`results/adfecgdb_leave_one_rec
 
 For comparison, the single-lead ML-assisted candidate-ranker reaches a 82.33% macro F1 and 11.60 BPM macro candidate-rate error on the same five-record leave-one-record-out evaluation. The stronger multi-lead result is expected: it keeps a candidate only when at least three aligned abdominal leads agree. These are real exploratory results from five public, de-identified records—not clinical performance claims. The dataset remains small and drawn from women in labor, so broader validation is still needed.
 
+The live dashboard's **Evidence** tab reads this same version-controlled evaluation file and displays the record-level results and limitations. It never treats those cohort-level research numbers as a prediction for a new upload.
+
 ## Two-minute judge demo
 
 1. Open the app and leave **Try the interactive demo** selected.
@@ -106,16 +108,26 @@ app.py                    Streamlit dashboard
 fetalsignal/demo_data.py          Synthetic labelled demo generator
 fetalsignal/signal_processing.py  Explainable signal-processing baseline
 requirements.txt          Dashboard dependencies
+docs/                     Ready-to-use Devpost, demo-video, screenshot, and submission materials
 ```
 
 ## AI-use disclosure
 
 > ChatGPT and OpenAI Codex were used as coding and learning assistants for implementation guidance, debugging, signal-processing explanations, and documentation. All project decisions, evaluation results, experiments, and submitted code were reviewed and understood by the team.
 
+## Submission materials
+
+The repository includes polished materials to paste into the competition submission and use while recording:
+
+- [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md) — project copy, technology list, ethics statement, and AI-use disclosure.
+- [`docs/DEMO_VIDEO_SCRIPT.md`](docs/DEMO_VIDEO_SCRIPT.md) — a 2–3 minute screen-recording script with voiceover/caption text.
+- [`docs/SCREENSHOT_GUIDE.md`](docs/SCREENSHOT_GUIDE.md) — three required screenshot shots and captions.
+- [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) — requirement-by-requirement final handoff checklist.
+
 ## Before submitting
 
-- [ ] Run the pipeline against at least one documented public, de-identified dataset.
-- [x] Record real precision, recall, F1, and fetal-rate error values from two public held-out-record evaluations—do not use the synthetic demo results as project performance.
+- [x] Run the pipeline against a documented public, de-identified dataset.
+- [x] Record real precision, recall, F1, and fetal-rate error values from five public held-out-record evaluations—do not use the synthetic demo results as project performance.
 - [ ] Expand validation beyond five records and report all record-level results, including difficult cases.
 - [ ] Cite the dataset version and its licence/terms in the submission.
 - [ ] Confirm every dataset is public or fully de-identified and that the README data-provenance table is current.

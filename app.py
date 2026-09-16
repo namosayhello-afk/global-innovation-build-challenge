@@ -6,6 +6,8 @@ An explorable research dashboard for abdominal ECG signal separation.
 from __future__ import annotations
 
 import io
+import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -168,6 +170,15 @@ Interpretation: This is a signal-processing output for de-identified research da
     return report.encode("utf-8")
 
 
+def load_evaluation_report() -> dict | None:
+    """Read the bundled, reproducible public-data evaluation if it is present."""
+    report_path = Path(__file__).parent / "results" / "adfecgdb_leave_one_record_out.json"
+    try:
+        return json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def explain_result(fetal_bpm: float | None, quality_score: float, candidate_count: int, model_enabled: bool) -> tuple[str, str, str]:
     """Translate research output into plain language without clinical claims."""
     model_note = " An experimental ML candidate-ranker reviewed the detected peaks." if model_enabled else " The baseline signal-processing detector selected the peaks."
@@ -320,7 +331,7 @@ if raw_signal is not None and time is not None:
     with next_col:
         st.markdown(f"<div class='panel'><b>What to do next</b><p class='caption'>{next_step}</p></div>", unsafe_allow_html=True)
 
-    overview_tab, signals_tab, validation_tab, method_tab = st.tabs(["Overview", "Signal lab", "Validation", "Method"])
+    overview_tab, signals_tab, validation_tab, method_tab, evidence_tab = st.tabs(["Overview", "Signal lab", "Validation", "Method", "Evidence"])
     with overview_tab:
         preview_seconds = min(15, int(np.ceil(time[-1] - time[0])))
         range_limit = float(time[-1] - preview_seconds)
@@ -377,5 +388,31 @@ if raw_signal is not None and time is not None:
 - **Fuse aligned leads when available** — when three or more abdominal ECG columns are selected, keeps a candidate only when several leads agree within 80 ms.
 - **Score cautiously** — signal quality combines candidate-interval plausibility, regularity, and residual energy. It is not a calibrated confidence or medical risk score.""")
         st.warning("Limitations: abdominal ECG quality can change with electrode placement, motion, maternal rhythm, gestational age, and noise. A candidate signal can be wrong. This project is for de-identified research data only.")
+    with evidence_tab:
+        st.markdown("### Public-data evaluation evidence")
+        evaluation_report = load_evaluation_report()
+        if evaluation_report is None:
+            st.info("The bundled evaluation report is unavailable in this deployment. See the repository results folder for the reproducible evaluation command and record-level outputs.")
+        else:
+            st.markdown("<div class='panel'><b>What these numbers do—and do not—mean</b><p class='caption'>These are exploratory results on five public, de-identified PhysioNet ADFECGDB recordings. They measure the multi-lead consensus pipeline against verified fetal-QRS references using an 80 ms match window. They do not predict performance for an uploaded recording, and they are not clinical-performance claims.</p></div>", unsafe_allow_html=True)
+            metric_one, metric_two, metric_three, metric_four = st.columns(4)
+            metric_one.metric("Macro F1", f"{evaluation_report['mean_multilead_consensus_f1']:.2%}")
+            metric_two.metric("Precision", f"{evaluation_report['mean_multilead_consensus_precision']:.2%}")
+            metric_three.metric("Recall", f"{evaluation_report['mean_multilead_consensus_recall']:.2%}")
+            metric_four.metric("Candidate-rate error", f"{evaluation_report['mean_multilead_consensus_bpm_absolute_error']:.2f} BPM")
+            st.caption(f"{evaluation_report['dataset']} · {evaluation_report['license']} · DOI {evaluation_report['dataset_doi']}")
+            record_rows = []
+            for record in evaluation_report.get("records", []):
+                metrics = record.get("multilead_consensus", {})
+                record_rows.append({
+                    "Public record": record.get("held_out_record", "—"),
+                    "F1": f"{metrics.get('f1', 0):.2%}",
+                    "Precision": f"{metrics.get('precision', 0):.2%}",
+                    "Recall": f"{metrics.get('recall', 0):.2%}",
+                    "Rate error": f"{metrics.get('bpm_absolute_error', 0):.2f} BPM",
+                })
+            st.markdown("#### Held-out record results")
+            st.dataframe(pd.DataFrame(record_rows), hide_index=True, width="stretch")
+            st.warning(evaluation_report.get("limitation", "These results are exploratory and not clinical performance claims."))
 
 st.markdown("<br><p class='caption'>FetalSignal AI · Exploratory signal processing for de-identified research recordings.</p>", unsafe_allow_html=True)
