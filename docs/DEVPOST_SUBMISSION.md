@@ -39,11 +39,11 @@ FetalSignal AI is a research and education prototype only. It is not a medical d
 
 ## Built with
 
-Python, Streamlit, NumPy, SciPy, Pandas, Plotly, scikit-learn, joblib, pyEDFlib, WFDB, PhysioNet ADFECGDB, and GitHub.
+Python, Streamlit, NumPy, SciPy, Pandas, Plotly, scikit-learn, joblib, pyEDFlib, WFDB, PhysioNet ADFECGDB, GitHub, ChatGPT, and OpenAI Codex.
 
 ## AI-use disclosure
 
-ChatGPT and OpenAI Codex were used as coding and learning assistants for implementation guidance, debugging, signal-processing explanations, and documentation. The team reviewed and understood the submitted implementation, experiments, and reported results.
+ChatGPT and OpenAI Codex assisted with the Streamlit interface, signal-processing implementation and debugging, experimental-model workflow, test/sample-data scaffolding, signal-processing explanations, and documentation. The team reviewed and understood the submitted implementation, public-data experiments, and reported results.
 
 ## Links to add before publishing
 

@@ -113,7 +113,7 @@ docs/                     Ready-to-use Devpost, demo-video, screenshot, and subm
 
 ## AI-use disclosure
 
-> ChatGPT and OpenAI Codex were used as coding and learning assistants for implementation guidance, debugging, signal-processing explanations, and documentation. All project decisions, evaluation results, experiments, and submitted code were reviewed and understood by the team.
+> **AI tools used:** ChatGPT and OpenAI Codex. They assisted with the Streamlit interface, signal-processing implementation and debugging, experimental-model workflow, test/sample-data scaffolding, signal-processing explanations, and documentation. All project decisions, public-data experiments, reported results, and submitted code were reviewed and understood by the team. The project is original work created during the July 11–October 1, 2026 hackathon period; no pre-existing product or prior hackathon submission was used.
 
 ## Submission materials
 
