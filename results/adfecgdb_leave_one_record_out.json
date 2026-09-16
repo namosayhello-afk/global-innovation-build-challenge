@@ -1,0 +1,69 @@
+{
+  "dataset": "PhysioNet Abdominal and Direct Fetal ECG Database v1.0.0 (ADFECDGB)",
+  "dataset_doi": "10.13026/C2RP4B",
+  "license": "Open Data Commons Attribution License v1.0",
+  "evaluation": "leave-one-record-out; candidate peaks matched to verified reference fetal QRS annotations within 80 ms",
+  "records": [
+    {
+      "held_out_record": "r01.edf",
+      "training_records": [
+        "r04.edf"
+      ],
+      "baseline": {
+        "candidate_beats": 679,
+        "reference_beats": 644,
+        "precision": 0.8719,
+        "recall": 0.9193,
+        "f1": 0.8949,
+        "peak_error_ms": 13.67,
+        "candidate_bpm": 128.76,
+        "reference_bpm": 127.66,
+        "bpm_absolute_error": 1.1
+      },
+      "ml_assisted": {
+        "candidate_beats": 671,
+        "reference_beats": 644,
+        "precision": 0.8808,
+        "recall": 0.9177,
+        "f1": 0.8989,
+        "peak_error_ms": 13.63,
+        "candidate_bpm": 128.48,
+        "reference_bpm": 127.66,
+        "bpm_absolute_error": 0.82
+      }
+    },
+    {
+      "held_out_record": "r04.edf",
+      "training_records": [
+        "r01.edf"
+      ],
+      "baseline": {
+        "candidate_beats": 758,
+        "reference_beats": 632,
+        "precision": 0.591,
+        "recall": 0.7089,
+        "f1": 0.6446,
+        "peak_error_ms": 23.22,
+        "candidate_bpm": 155.04,
+        "reference_bpm": 125.52,
+        "bpm_absolute_error": 29.52
+      },
+      "ml_assisted": {
+        "candidate_beats": 758,
+        "reference_beats": 632,
+        "precision": 0.591,
+        "recall": 0.7089,
+        "f1": 0.6446,
+        "peak_error_ms": 23.22,
+        "candidate_bpm": 155.04,
+        "reference_bpm": 125.52,
+        "bpm_absolute_error": 29.52
+      }
+    }
+  ],
+  "mean_ml_assisted_f1": 0.7717,
+  "mean_ml_assisted_precision": 0.7359,
+  "mean_ml_assisted_recall": 0.8133,
+  "mean_ml_assisted_bpm_absolute_error": 15.17,
+  "limitation": "Two public records are currently included. These results are exploratory and must not be described as clinical performance or broad generalization."
+}

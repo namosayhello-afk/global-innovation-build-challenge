@@ -46,6 +46,25 @@ pip install pyedflib wfdb
 python -m scripts.train_candidate_ranker --records data/adfecgdb/r01.edf
 ```
 
+To run the current record-level evaluation and regenerate the bundled model:
+
+```bash
+pip install -r requirements-train.txt
+python -m scripts.evaluate_candidate_ranker --records data/adfecgdb/r01.edf data/adfecgdb/r04.edf
+```
+
+## Current research evaluation
+
+The current reproducible evaluation is saved in [`results/adfecgdb_leave_one_record_out.json`](results/adfecgdb_leave_one_record_out.json). It uses leave-one-record-out testing: train the candidate-ranker on one public ADFECGDB record, then evaluate on the other. A predicted candidate peak counts as matched when it falls within 80 ms of a verified reference fetal QRS annotation.
+
+| Held-out public record | ML-assisted precision | ML-assisted recall | ML-assisted F1 | Candidate-rate absolute error |
+| --- | ---: | ---: | ---: | ---: |
+| `r01.edf` | 88.08% | 91.77% | 89.89% | 0.82 BPM |
+| `r04.edf` | 59.10% | 70.89% | 64.46% | 29.52 BPM |
+| Macro mean, 2 records | 73.59% | 81.33% | 77.17% | 15.17 BPM |
+
+These are real exploratory results from two public, de-identified records—not clinical performance claims. The uneven held-out performance is evidence that more records, better maternal removal, and stronger validation are needed before making broader statements.
+
 ## Two-minute judge demo
 
 1. Open the app and leave **Try the interactive demo** selected.
@@ -93,7 +112,8 @@ requirements.txt          Dashboard dependencies
 ## Before submitting
 
 - [ ] Run the pipeline against at least one documented public, de-identified dataset.
-- [ ] Record real precision, recall, F1, and fetal-rate error values—do not use the synthetic demo results as project performance.
+- [x] Record real precision, recall, F1, and fetal-rate error values from two public held-out-record evaluations—do not use the synthetic demo results as project performance.
+- [ ] Expand validation beyond two records and report all record-level results, including difficult cases.
 - [ ] Cite the dataset version and its licence/terms in the submission.
 - [ ] Confirm every dataset is public or fully de-identified and that the README data-provenance table is current.
 - [ ] Include a short screen recording or screenshots of the app and its signal-separation flow.
