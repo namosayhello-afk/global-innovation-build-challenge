@@ -14,7 +14,7 @@ import streamlit as st
 
 from fetalsignal.demo_data import make_demo_recording
 from fetalsignal.ml import select_model_candidates
-from fetalsignal.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
+from fetalsignal.signal_processing import extract_fetal_signal, fuse_multichannel_peaks, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
 st.set_page_config(page_title="FetalSignal AI", page_icon="✦", layout="wide", initial_sidebar_state="expanded")
@@ -245,6 +245,9 @@ raw_signal: np.ndarray | None = None
 time: np.ndarray | None = None
 reference: np.ndarray | None = None
 data_note = ""
+precomputed_result = None
+precomputed_fetal_peaks: np.ndarray | None = None
+analysis_method = ""
 
 if source == "Try the interactive demo":
     noise_by_label = {"Low": 0.025, "Standard": 0.045, "High": 0.115}
@@ -258,22 +261,41 @@ else:
     else:
         try:
             uploaded_frame = read_table(uploaded)
-            choices = numeric_columns(uploaded_frame)
+            time_column_names = {"time", "timestamp", "time_s", "seconds", "t"}
+            choices = [column for column in numeric_columns(uploaded_frame) if column.lower() not in time_column_names]
             if not choices:
                 raise ValueError("No numeric signal columns found. Add a header row and one column of ECG samples.")
             with st.sidebar:
-                selected_column = st.selectbox("Abdominal ECG column", choices, help="Choose one abdominal ECG lead to analyze.")
-            raw_signal = extract_column(uploaded_frame, selected_column, sample_rate)
+                selected_columns = st.multiselect("Abdominal ECG lead(s)", choices, default=choices[: min(4, len(choices))], help="Select aligned abdominal ECG leads. Three or more leads enable consensus detection.")
+            if not selected_columns:
+                raise ValueError("Choose at least one abdominal ECG column to analyze.")
+            signals = [extract_column(uploaded_frame, column, sample_rate) for column in selected_columns]
+            results = [extract_fetal_signal(signal, sample_rate, powerline) for signal in signals]
+            primary_index = int(np.argmax([result.quality_score for result in results]))
+            raw_signal, precomputed_result = signals[primary_index], results[primary_index]
             time, time_note = infer_time(uploaded_frame, raw_signal.size, sample_rate)
-            data_note = f"{uploaded.name} · {selected_column} · {time_note}"
+            if len(results) >= 2:
+                required_leads = min(3, len(results))
+                consensus = fuse_multichannel_peaks([result.fetal_peaks for result in results], sample_rate, minimum_channels=required_leads)
+                if consensus.size >= 3:
+                    precomputed_fetal_peaks = consensus
+                    analysis_method = f"{len(results)}-lead consensus (a beat needs support from {required_leads} leads)"
+                else:
+                    analysis_method = f"Best single lead selected from {len(results)} uploaded leads"
+            else:
+                analysis_method = "Single-lead ML-assisted candidate ranking"
+            data_note = f"{uploaded.name} · {', '.join(selected_columns)} · {analysis_method} · {time_note}"
             if reference_upload is not None:
                 reference = load_reference(reference_upload, sample_rate, raw_signal.size)
         except ValueError as error:
             st.error(str(error))
 
 if raw_signal is not None and time is not None:
-    result = extract_fetal_signal(raw_signal, sample_rate, powerline)
-    fetal_peaks, model_probabilities = select_model_candidates(result.residual, result.fetal_peaks, sample_rate)
+    result = precomputed_result or extract_fetal_signal(raw_signal, sample_rate, powerline)
+    if precomputed_fetal_peaks is not None:
+        fetal_peaks, model_probabilities = precomputed_fetal_peaks, None
+    else:
+        fetal_peaks, model_probabilities = select_model_candidates(result.residual, result.fetal_peaks, sample_rate)
     fetal_bpm, maternal_bpm = heart_rate_bpm(fetal_peaks, sample_rate), heart_rate_bpm(result.maternal_peaks, sample_rate)
     label, label_class = quality_label(result.quality_score)
     st.markdown("<div class='section-label'>Analysis workspace</div>", unsafe_allow_html=True)
@@ -281,7 +303,9 @@ if raw_signal is not None and time is not None:
     title_col.markdown("## Your signal, unpacked")
     status_col.markdown(f"<span class='status-pill {label_class}'>{label}</span>", unsafe_allow_html=True)
     st.caption(data_note)
-    if model_probabilities is not None:
+    if precomputed_fetal_peaks is not None:
+        st.caption("Multi-lead consensus is enabled: a candidate beat is kept only when it appears in several aligned abdominal ECG leads. This is an experimental research feature.")
+    elif model_probabilities is not None:
         st.caption("ML-assisted candidate ranking is enabled. It is an experimental research model and falls back to the signal-processing baseline when its filtering would be too aggressive.")
     metric_columns = st.columns(4)
     metric_columns[0].metric("Fetal candidate rate", metric_value(fetal_bpm))
@@ -350,6 +374,7 @@ if raw_signal is not None and time is not None:
 - **Find maternal candidates** — looks for recurring maternal QRS-like peaks in a maternal-frequency view.
 - **Estimate and reduce** — builds a median maternal beat template and subtracts the overlap-adjusted estimate.
 - **Find fetal candidates** — filters the residual and searches for repeating peaks in a fetal-rate range.
+- **Fuse aligned leads when available** — when three or more abdominal ECG columns are selected, keeps a candidate only when several leads agree within 80 ms.
 - **Score cautiously** — signal quality combines candidate-interval plausibility, regularity, and residual energy. It is not a calibrated confidence or medical risk score.""")
         st.warning("Limitations: abdominal ECG quality can change with electrode placement, motion, maternal rhythm, gestational age, and noise. A candidate signal can be wrong. This project is for de-identified research data only.")
 

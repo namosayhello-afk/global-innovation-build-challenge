@@ -1,7 +1,7 @@
 import numpy as np
 
 from fetalsignal.demo_data import make_demo_recording
-from fetalsignal.signal_processing import extract_fetal_signal, heart_rate_bpm, match_peaks, rolling_heart_rate
+from fetalsignal.signal_processing import extract_fetal_signal, fuse_multichannel_peaks, heart_rate_bpm, match_peaks, rolling_heart_rate
 
 
 def test_demo_pipeline_returns_finite_signals():
@@ -27,3 +27,13 @@ def test_rolling_rate_returns_expected_rate_for_regular_beats():
     centers, rates = rolling_heart_rate(peaks, sample_rate=500, duration_seconds=12)
     assert centers.size
     assert np.allclose(rates[~np.isnan(rates)], 120)
+
+
+def test_multichannel_fusion_requires_consensus():
+    fused = fuse_multichannel_peaks(
+        [np.array([100, 300, 500]), np.array([103, 301, 700]), np.array([98, 302, 500])],
+        sample_rate=1_000,
+        minimum_channels=3,
+        tolerance_ms=8,
+    )
+    assert np.array_equal(fused, np.array([100, 301]))

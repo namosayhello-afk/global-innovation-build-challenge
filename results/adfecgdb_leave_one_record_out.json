@@ -7,7 +7,10 @@
     {
       "held_out_record": "r01.edf",
       "training_records": [
-        "r04.edf"
+        "r04.edf",
+        "r07.edf",
+        "r08.edf",
+        "r10.edf"
       ],
       "baseline": {
         "candidate_beats": 679,
@@ -21,21 +24,35 @@
         "bpm_absolute_error": 1.1
       },
       "ml_assisted": {
-        "candidate_beats": 671,
+        "candidate_beats": 632,
         "reference_beats": 644,
-        "precision": 0.8808,
-        "recall": 0.9177,
-        "f1": 0.8989,
+        "precision": 0.9335,
+        "recall": 0.9161,
+        "f1": 0.9248,
         "peak_error_ms": 13.63,
-        "candidate_bpm": 128.48,
+        "candidate_bpm": 127.66,
         "reference_bpm": 127.66,
-        "bpm_absolute_error": 0.82
+        "bpm_absolute_error": 0.0
+      },
+      "multilead_consensus": {
+        "candidate_beats": 642,
+        "reference_beats": 644,
+        "precision": 0.9922,
+        "recall": 0.9891,
+        "f1": 0.9907,
+        "peak_error_ms": 9.57,
+        "candidate_bpm": 127.66,
+        "reference_bpm": 127.66,
+        "bpm_absolute_error": 0.0
       }
     },
     {
       "held_out_record": "r04.edf",
       "training_records": [
-        "r01.edf"
+        "r01.edf",
+        "r07.edf",
+        "r08.edf",
+        "r10.edf"
       ],
       "baseline": {
         "candidate_beats": 758,
@@ -58,12 +75,153 @@
         "candidate_bpm": 155.04,
         "reference_bpm": 125.52,
         "bpm_absolute_error": 29.52
+      },
+      "multilead_consensus": {
+        "candidate_beats": 624,
+        "reference_beats": 632,
+        "precision": 0.9407,
+        "recall": 0.9288,
+        "f1": 0.9347,
+        "peak_error_ms": 15.89,
+        "candidate_bpm": 127.39,
+        "reference_bpm": 125.52,
+        "bpm_absolute_error": 1.87
+      }
+    },
+    {
+      "held_out_record": "r07.edf",
+      "training_records": [
+        "r01.edf",
+        "r04.edf",
+        "r08.edf",
+        "r10.edf"
+      ],
+      "baseline": {
+        "candidate_beats": 759,
+        "reference_beats": 627,
+        "precision": 0.5718,
+        "recall": 0.6922,
+        "f1": 0.6263,
+        "peak_error_ms": 23.71,
+        "candidate_bpm": 153.65,
+        "reference_bpm": 126.05,
+        "bpm_absolute_error": 27.6
+      },
+      "ml_assisted": {
+        "candidate_beats": 759,
+        "reference_beats": 627,
+        "precision": 0.5718,
+        "recall": 0.6922,
+        "f1": 0.6263,
+        "peak_error_ms": 23.71,
+        "candidate_bpm": 153.65,
+        "reference_bpm": 126.05,
+        "bpm_absolute_error": 27.6
+      },
+      "multilead_consensus": {
+        "candidate_beats": 588,
+        "reference_beats": 627,
+        "precision": 0.9745,
+        "recall": 0.9139,
+        "f1": 0.9432,
+        "peak_error_ms": 15.58,
+        "candidate_bpm": 126.05,
+        "reference_bpm": 126.05,
+        "bpm_absolute_error": 0.0
+      }
+    },
+    {
+      "held_out_record": "r08.edf",
+      "training_records": [
+        "r01.edf",
+        "r04.edf",
+        "r07.edf",
+        "r10.edf"
+      ],
+      "baseline": {
+        "candidate_beats": 667,
+        "reference_beats": 651,
+        "precision": 0.9505,
+        "recall": 0.9739,
+        "f1": 0.9621,
+        "peak_error_ms": 12.2,
+        "candidate_bpm": 129.87,
+        "reference_bpm": 129.31,
+        "bpm_absolute_error": 0.56
+      },
+      "ml_assisted": {
+        "candidate_beats": 644,
+        "reference_beats": 651,
+        "precision": 0.9783,
+        "recall": 0.9677,
+        "f1": 0.973,
+        "peak_error_ms": 12.17,
+        "candidate_bpm": 129.31,
+        "reference_bpm": 129.31,
+        "bpm_absolute_error": 0.0
+      },
+      "multilead_consensus": {
+        "candidate_beats": 646,
+        "reference_beats": 651,
+        "precision": 0.9907,
+        "recall": 0.9831,
+        "f1": 0.9869,
+        "peak_error_ms": 6.07,
+        "candidate_bpm": 129.59,
+        "reference_bpm": 129.31,
+        "bpm_absolute_error": 0.28
+      }
+    },
+    {
+      "held_out_record": "r10.edf",
+      "training_records": [
+        "r01.edf",
+        "r04.edf",
+        "r07.edf",
+        "r08.edf"
+      ],
+      "baseline": {
+        "candidate_beats": 671,
+        "reference_beats": 637,
+        "precision": 0.9225,
+        "recall": 0.9717,
+        "f1": 0.9465,
+        "peak_error_ms": 6.27,
+        "candidate_bpm": 132.45,
+        "reference_bpm": 131.58,
+        "bpm_absolute_error": 0.87
+      },
+      "ml_assisted": {
+        "candidate_beats": 669,
+        "reference_beats": 637,
+        "precision": 0.9253,
+        "recall": 0.9717,
+        "f1": 0.9479,
+        "peak_error_ms": 6.27,
+        "candidate_bpm": 132.45,
+        "reference_bpm": 131.58,
+        "bpm_absolute_error": 0.87
+      },
+      "multilead_consensus": {
+        "candidate_beats": 645,
+        "reference_beats": 637,
+        "precision": 0.9271,
+        "recall": 0.9388,
+        "f1": 0.9329,
+        "peak_error_ms": 5.92,
+        "candidate_bpm": 132.45,
+        "reference_bpm": 131.58,
+        "bpm_absolute_error": 0.87
       }
     }
   ],
-  "mean_ml_assisted_f1": 0.7717,
-  "mean_ml_assisted_precision": 0.7359,
-  "mean_ml_assisted_recall": 0.8133,
-  "mean_ml_assisted_bpm_absolute_error": 15.17,
-  "limitation": "Two public records are currently included. These results are exploratory and must not be described as clinical performance or broad generalization."
+  "mean_ml_assisted_f1": 0.8233,
+  "mean_ml_assisted_precision": 0.8,
+  "mean_ml_assisted_recall": 0.8513,
+  "mean_ml_assisted_bpm_absolute_error": 11.598,
+  "mean_multilead_consensus_f1": 0.9577,
+  "mean_multilead_consensus_precision": 0.965,
+  "mean_multilead_consensus_recall": 0.9507,
+  "mean_multilead_consensus_bpm_absolute_error": 0.604,
+  "limitation": "Five public records are currently included. These results are exploratory and must not be described as clinical performance or broad generalization."
 }

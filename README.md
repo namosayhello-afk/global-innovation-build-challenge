@@ -26,7 +26,7 @@ FetalSignal AI accepts and uses only public, properly licensed, or fully de-iden
 
 | Data source | Version / licence | Use in this project | Citation |
 | --- | --- | --- | --- |
-| Abdominal and Direct Fetal ECG Database (ADFECDGB), PhysioNet | Version 1.0.0; Open Data Commons Attribution License v1.0; DOI: [10.13026/C2RP4B](https://doi.org/10.13026/C2RP4B) | The experimental candidate-ranking model was trained on the public, de-identified `r01` record. The direct fetal channel and verified QRS annotations are used only as training/validation references, never as app input. | Jezewski J, Matonia A, Kupka T, Roj D, Czabanski R. *Determination of the fetal heart rate from abdominal signals: evaluation of beat-to-beat accuracy in relation to the direct fetal electrocardiogram.* Biomedical Engineering/Biomedizinische Technik. 2012;57(5):383–394. |
+| Abdominal and Direct Fetal ECG Database (ADFECDGB), PhysioNet | Version 1.0.0; Open Data Commons Attribution License v1.0; DOI: [10.13026/C2RP4B](https://doi.org/10.13026/C2RP4B) | The experimental candidate-ranking model and five-record evaluation use the public, de-identified `r01`, `r04`, `r07`, `r08`, and `r10` records. Their direct fetal channels and verified QRS annotations are used only as training/validation references, never as app input. | Jezewski J, Matonia A, Kupka T, Roj D, Czabanski R. *Determination of the fetal heart rate from abdominal signals: evaluation of beat-to-beat accuracy in relation to the direct fetal electrocardiogram.* Biomedical Engineering/Biomedizinische Technik. 2012;57(5):383–394. |
 | `sample_data/` files in this repository | Synthetic data generated locally by `fetalsignal/demo_data.py`; no human data or external licence required | Upload-flow demonstration only. They are never reported as model performance. | Not applicable. |
 
 The source ADFECGDB data are intentionally excluded from Git via `.gitignore`; only code, a small derived research-model artifact, and synthetic demo files are in the public repository. Before adding any new dataset, record its source URL, exact version, licence/terms, de-identification status, permitted use, and the experiment that uses it in this table.
@@ -50,20 +50,23 @@ To run the current record-level evaluation and regenerate the bundled model:
 
 ```bash
 pip install -r requirements-train.txt
-python -m scripts.evaluate_candidate_ranker --records data/adfecgdb/r01.edf data/adfecgdb/r04.edf
+python -m scripts.evaluate_candidate_ranker --records data/adfecgdb/r01.edf data/adfecgdb/r04.edf data/adfecgdb/r07.edf data/adfecgdb/r08.edf data/adfecgdb/r10.edf
 ```
 
 ## Current research evaluation
 
-The current reproducible evaluation is saved in [`results/adfecgdb_leave_one_record_out.json`](results/adfecgdb_leave_one_record_out.json). It uses leave-one-record-out testing: train the candidate-ranker on one public ADFECGDB record, then evaluate on the other. A predicted candidate peak counts as matched when it falls within 80 ms of a verified reference fetal QRS annotation.
+The current reproducible evaluation is saved in [`results/adfecgdb_leave_one_record_out.json`](results/adfecgdb_leave_one_record_out.json). The ML candidate-ranker uses leave-one-record-out testing: train on four public ADFECGDB records, then evaluate on the fifth. The multi-lead consensus pipeline is evaluated separately on each complete four-abdominal-lead recording. A predicted candidate peak counts as matched when it falls within 80 ms of a verified reference fetal QRS annotation.
 
-| Held-out public record | ML-assisted precision | ML-assisted recall | ML-assisted F1 | Candidate-rate absolute error |
-| --- | ---: | ---: | ---: | ---: |
-| `r01.edf` | 88.08% | 91.77% | 89.89% | 0.82 BPM |
-| `r04.edf` | 59.10% | 70.89% | 64.46% | 29.52 BPM |
-| Macro mean, 2 records | 73.59% | 81.33% | 77.17% | 15.17 BPM |
+| Public record | Multi-lead consensus F1 | Candidate-rate absolute error |
+| --- | ---: | ---: |
+| `r01.edf` | 99.07% | 0.00 BPM |
+| `r04.edf` | 93.47% | 1.87 BPM |
+| `r07.edf` | 94.32% | 0.00 BPM |
+| `r08.edf` | 98.69% | 0.28 BPM |
+| `r10.edf` | 93.29% | 0.87 BPM |
+| Macro mean, 5 records | 95.77% | 0.60 BPM |
 
-These are real exploratory results from two public, de-identified records—not clinical performance claims. The uneven held-out performance is evidence that more records, better maternal removal, and stronger validation are needed before making broader statements.
+For comparison, the single-lead ML-assisted candidate-ranker reaches a 82.33% macro F1 and 11.60 BPM macro candidate-rate error on the same five-record leave-one-record-out evaluation. The stronger multi-lead result is expected: it keeps a candidate only when at least three aligned abdominal leads agree. These are real exploratory results from five public, de-identified records—not clinical performance claims. The dataset remains small and drawn from women in labor, so broader validation is still needed.
 
 ## Two-minute judge demo
 
@@ -113,7 +116,7 @@ requirements.txt          Dashboard dependencies
 
 - [ ] Run the pipeline against at least one documented public, de-identified dataset.
 - [x] Record real precision, recall, F1, and fetal-rate error values from two public held-out-record evaluations—do not use the synthetic demo results as project performance.
-- [ ] Expand validation beyond two records and report all record-level results, including difficult cases.
+- [ ] Expand validation beyond five records and report all record-level results, including difficult cases.
 - [ ] Cite the dataset version and its licence/terms in the submission.
 - [ ] Confirm every dataset is public or fully de-identified and that the README data-provenance table is current.
 - [ ] Include a short screen recording or screenshots of the app and its signal-separation flow.

@@ -12,12 +12,13 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pyedflib
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from fetalsignal.ml import MODEL_PATH, candidate_features
-from fetalsignal.signal_processing import heart_rate_bpm, match_peaks
+from fetalsignal.signal_processing import fuse_multichannel_peaks, heart_rate_bpm, match_peaks
 from scripts.train_candidate_ranker import labels_for_candidates, load_record
 from fetalsignal.signal_processing import extract_fetal_signal
 
@@ -54,9 +55,24 @@ def metric_summary(predicted: np.ndarray, reference: np.ndarray, sample_rate: fl
     }
 
 
-def mean_metric(records: list[dict], key: str) -> float | None:
-    values = [record["ml_assisted"][key] for record in records if record["ml_assisted"][key] is not None]
+def mean_metric(records: list[dict], method: str, key: str) -> float | None:
+    values = [record[method][key] for record in records if record[method][key] is not None]
     return None if not values else round(float(np.mean(values)), 4)
+
+
+def multilead_consensus(path: Path, sample_rate: float) -> np.ndarray:
+    """Generate a three-of-four abdominal-lead consensus without reference labels."""
+    reader = pyedflib.EdfReader(str(path))
+    try:
+        peak_sets = []
+        for channel in range(1, reader.signals_in_file):
+            channel_rate = float(reader.getSampleFrequency(channel))
+            if channel_rate != sample_rate:
+                raise ValueError(f"{path.name} has inconsistent channel sample rates.")
+            peak_sets.append(extract_fetal_signal(reader.readSignal(channel), sample_rate).fetal_peaks)
+    finally:
+        reader.close()
+    return fuse_multichannel_peaks(peak_sets, sample_rate, minimum_channels=3)
 
 
 def main() -> None:
@@ -79,6 +95,7 @@ def main() -> None:
                 "peaks": result.fetal_peaks,
                 "features": candidate_features(result.residual, result.fetal_peaks, sample_rate),
                 "labels": labels_for_candidates(result.fetal_peaks, reference, sample_rate),
+                "consensus_peaks": multilead_consensus(path, sample_rate),
             }
         )
 
@@ -95,6 +112,7 @@ def main() -> None:
                 "training_records": [record["name"] for index, record in enumerate(records) if index != test_index],
                 "baseline": metric_summary(test["peaks"], test["reference"], test["sample_rate"]),
                 "ml_assisted": metric_summary(ml_peaks, test["reference"], test["sample_rate"]),
+                "multilead_consensus": metric_summary(test["consensus_peaks"], test["reference"], test["sample_rate"]),
             }
         )
 
@@ -108,11 +126,15 @@ def main() -> None:
         "license": "Open Data Commons Attribution License v1.0",
         "evaluation": "leave-one-record-out; candidate peaks matched to verified reference fetal QRS annotations within 80 ms",
         "records": evaluations,
-        "mean_ml_assisted_f1": mean_metric(evaluations, "f1"),
-        "mean_ml_assisted_precision": mean_metric(evaluations, "precision"),
-        "mean_ml_assisted_recall": mean_metric(evaluations, "recall"),
-        "mean_ml_assisted_bpm_absolute_error": mean_metric(evaluations, "bpm_absolute_error"),
-        "limitation": "Two public records are currently included. These results are exploratory and must not be described as clinical performance or broad generalization.",
+        "mean_ml_assisted_f1": mean_metric(evaluations, "ml_assisted", "f1"),
+        "mean_ml_assisted_precision": mean_metric(evaluations, "ml_assisted", "precision"),
+        "mean_ml_assisted_recall": mean_metric(evaluations, "ml_assisted", "recall"),
+        "mean_ml_assisted_bpm_absolute_error": mean_metric(evaluations, "ml_assisted", "bpm_absolute_error"),
+        "mean_multilead_consensus_f1": mean_metric(evaluations, "multilead_consensus", "f1"),
+        "mean_multilead_consensus_precision": mean_metric(evaluations, "multilead_consensus", "precision"),
+        "mean_multilead_consensus_recall": mean_metric(evaluations, "multilead_consensus", "recall"),
+        "mean_multilead_consensus_bpm_absolute_error": mean_metric(evaluations, "multilead_consensus", "bpm_absolute_error"),
+        "limitation": "Five public records are currently included. These results are exploratory and must not be described as clinical performance or broad generalization.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

@@ -141,6 +141,34 @@ def rolling_heart_rate(
     return centers, rates
 
 
+def fuse_multichannel_peaks(
+    peak_sets: list[np.ndarray],
+    sample_rate: float,
+    minimum_channels: int = 3,
+    tolerance_ms: float = 80.0,
+) -> np.ndarray:
+    """Keep candidate peaks supported by several independent abdominal leads.
+
+    This simple consensus method is intended for aligned, simultaneous leads in
+    the same recording. It does not combine unrelated recordings or channels
+    sampled at different rates.
+    """
+    if len(peak_sets) < minimum_channels:
+        return np.array([], dtype=int)
+    tolerance = int(sample_rate * tolerance_ms / 1000)
+    all_peaks = sorted((int(peak), channel) for channel, peaks in enumerate(peak_sets) for peak in peaks)
+    if not all_peaks:
+        return np.array([], dtype=int)
+    clusters: list[list[tuple[int, int]]] = []
+    for peak, channel in all_peaks:
+        if not clusters or peak - clusters[-1][-1][0] > tolerance:
+            clusters.append([(peak, channel)])
+        else:
+            clusters[-1].append((peak, channel))
+    fused = [int(np.median([peak for peak, _ in cluster])) for cluster in clusters if len({channel for _, channel in cluster}) >= minimum_channels]
+    return np.asarray(fused, dtype=int)
+
+
 def match_peaks(predicted: np.ndarray, reference: np.ndarray, sample_rate: float, tolerance_ms: float = 80.0) -> dict[str, float | int]:
     """One-to-one annotation matching for transparent evaluation."""
     tolerance = int(sample_rate * tolerance_ms / 1000)
