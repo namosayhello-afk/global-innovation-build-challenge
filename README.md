@@ -129,6 +129,8 @@ docs/                     Ready-to-use Devpost, demo-video, screenshot, and subm
 
 ## Submission materials
 
+Start with the [plain-language user guide](docs/USER_GUIDE.md) to learn what BPM, quality scores, charts, validation, and evidence mean, with worked examples and demo wording.
+
 The repository includes polished materials to paste into the competition submission and use while recording:
 
 - [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md) — project copy, technology list, ethics statement, and AI-use disclosure.
