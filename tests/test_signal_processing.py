@@ -1,4 +1,5 @@
 import numpy as np
+import unittest
 
 from fetalsignal.demo_data import make_demo_recording
 from fetalsignal.signal_processing import extract_fetal_signal, fuse_multichannel_peaks, heart_rate_bpm, match_peaks, rolling_heart_rate
@@ -37,3 +38,11 @@ def test_multichannel_fusion_requires_consensus():
         tolerance_ms=8,
     )
     assert np.array_equal(fused, np.array([100, 301]))
+
+
+def load_tests(loader, suite, pattern):
+    """Run the existing function tests with the standard-library test runner too."""
+    for name, check in sorted(globals().items()):
+        if name.startswith("test_") and callable(check):
+            suite.addTest(unittest.FunctionTestCase(check))
+    return suite

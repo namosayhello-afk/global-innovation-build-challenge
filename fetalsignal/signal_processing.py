@@ -106,11 +106,11 @@ def extract_fetal_signal(signal: np.ndarray, sample_rate: float, powerline_hz: f
     return ExtractionResult(cleaned, maternal_component, fetal_view, maternal_peaks, fetal_peaks, quality)
 
 
-def heart_rate_bpm(peaks: np.ndarray, sample_rate: float) -> float | None:
+def heart_rate_bpm(peaks: np.ndarray, sample_rate: float, min_bpm: float = 75, max_bpm: float = 60 / 0.27) -> float | None:
     if peaks.size < 2:
         return None
     intervals = np.diff(peaks) / sample_rate
-    intervals = intervals[(intervals > 0.27) & (intervals < 0.8)]
+    intervals = intervals[(intervals > 60 / max_bpm) & (intervals < 60 / min_bpm)]
     return None if intervals.size == 0 else float(60 / np.median(intervals))
 
 

@@ -33,6 +33,14 @@ The source ADFECGDB data are intentionally excluded from Git via `.gitignore`; o
 
 ## Run it
 
+### First visit
+
+Open **New here? Follow the guided walkthrough** and use Next/Previous to learn each step. Choose **Use sample recording** to load a synthetic waveform and matching references in one click. Read **Your results**, inspect **Overview**, and open **Validation** to see how beat matching works. **Signal lab** contains the full-recording CSVs and readable report. The sidebar glossary and troubleshooting section explain common terms and errors.
+
+For your own permitted research recording, choose **Upload signal data**. Follow A–D in the main workspace: choose the waveform, set its actual sampling rate, optionally attach matching references, and select abdominal ECG leads. Reference units and the reference column are explicit selections; seconds must be relative to the recording start, and sample indices start at zero. Uploads are limited to 25 MB, 600,000 rows, and eight selected leads. Missing or invalid samples are rejected rather than dropped, preserving timing across leads. A recognized time column must be uniformly sampled and agree with the selected rate. Three or more aligned abdominal leads enable three-lead consensus; one or two use the selected best lead.
+
+### Local installation
+
 ```bash
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -90,7 +98,7 @@ They are synthetic demonstration data only, not a performance claim or patient d
 
 ## Using a public dataset
 
-Use public, de-identified data such as PhysioNet fetal ECG collections. Convert one abdominal ECG lead into a CSV or TXT table with one sample per row and upload it through the app. Enter the recording's actual sampling frequency. If the table includes a `time`, `timestamp`, `time_s`, `seconds`, or `t` column, the dashboard uses it for the x-axis.
+Use public, de-identified data such as PhysioNet fetal ECG collections. Convert abdominal ECG leads into a CSV or TXT table with one sample per row and upload it through the app. Enter the recording's actual sampling frequency. A `time`, `timestamp`, `time_s`, `time_seconds`, `seconds`, or `t` column is treated as time in seconds and checked against the selected rate. Do not select direct fetal or reference channels as abdominal inputs.
 
 This app deliberately does **not** take a screenshot or photograph of an ECG chart as input: an image loses the waveform's original sample values and cannot support reliable signal processing.
 
@@ -100,6 +108,10 @@ Useful starting points:
 
 - [Abdominal and Direct Fetal ECG Database v1.0.0 — public/de-identified, ODC-By 1.0](https://www.physionet.org/content/adfecgdb/1.0.0/)
 - [Non-Invasive Fetal ECG Database](https://physionet.org/content/nifecgdb/)
+
+## Verification
+
+Run `python -m unittest discover -s tests -v` with the dashboard dependencies installed. The checks cover the guided walkthrough, sample and upload flows, multi-lead selection, invalid/missing data, timing and reference units, empty model candidates, and signal-processing regressions. Desktop and narrow-screen layouts were also inspected in a browser. Passing these checks is not a guarantee that all possible inputs are supported.
 
 ## Repository layout
 
@@ -120,7 +132,7 @@ docs/                     Ready-to-use Devpost, demo-video, screenshot, and subm
 The repository includes polished materials to paste into the competition submission and use while recording:
 
 - [`docs/DEVPOST_SUBMISSION.md`](docs/DEVPOST_SUBMISSION.md) — project copy, technology list, ethics statement, and AI-use disclosure.
-- [`docs/DEMO_VIDEO_SCRIPT.md`](docs/DEMO_VIDEO_SCRIPT.md) — a 2–3 minute screen-recording script with voiceover/caption text.
+- [`docs/DEMO_VIDEO_SCRIPT.md`](docs/DEMO_VIDEO_SCRIPT.md) — an approximately 3½-minute screen-recording script with voiceover/caption text.
 - [`docs/SCREENSHOT_GUIDE.md`](docs/SCREENSHOT_GUIDE.md) — three required screenshot shots and captions.
 - [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) — requirement-by-requirement final handoff checklist.
 

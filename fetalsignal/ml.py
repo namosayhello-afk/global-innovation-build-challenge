@@ -39,7 +39,7 @@ def candidate_features(signal: np.ndarray, peaks: np.ndarray, sample_rate: float
 
 def score_candidates(signal: np.ndarray, peaks: np.ndarray, sample_rate: float) -> np.ndarray | None:
     """Return fetal-candidate probabilities, or None when no bundled model exists."""
-    if not MODEL_PATH.exists():
+    if peaks.size == 0 or not MODEL_PATH.exists():
         return None
     model = joblib.load(MODEL_PATH)
     return model.predict_proba(candidate_features(signal, peaks, sample_rate))[:, 1]
