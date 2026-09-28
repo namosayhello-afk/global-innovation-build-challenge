@@ -163,7 +163,7 @@ def guided_walkthrough() -> None:
         step = st.session_state.get("guide_step", 0)
         titles = ["Choose a recording", "Read the snapshot", "Inspect and validate", "Export responsibly"]
         instructions = [
-            "Use **Use sample recording** for the fastest complete example. It loads a labelled synthetic waveform and separate reference beats. **Try the interactive demo** lets you change noise. **Upload signal data** accepts a permitted CSV/TXT waveform.",
+            "Use **Use sample recording** for a fixed, repeatable benchmark with separate reference beats. **Try the interactive demo** generates a configurable scenario with its own rhythms, noise, duration, and seed. **Upload signal data** analyzes only the permitted CSV/TXT waveform you provide.",
             "Read the four result cards as research diagnostics. Candidate BPM comes from candidate-beat spacing. The quality number is a signal heuristic—not accuracy, medical confidence, or a patient score.",
             "Use **Overview** to inspect peaks, **Signal Studio** to see the separation layers, and **Validation** to compare with independent reference annotations. A visually convincing waveform is not enough on its own.",
             "Download the processed waveform, candidate locations, report, or JSON manifest. Keep the research-only limitation with every exported or presented result.",
@@ -240,7 +240,7 @@ safety_note()
 guided_walkthrough()
 onboarding_cards()
 
-section("Start here", "Choose the research experience", "The sample is the fastest judge-ready path. Every mode uses the same transparent analysis pipeline.")
+section("Start here", "Choose the research experience", "Each source now has a different purpose: fixed benchmark, configurable simulation, or external research data.")
 source = st.radio(
     "Recording source",
     ["Use sample recording", "Try the interactive demo", "Upload signal data"],
@@ -249,12 +249,40 @@ source = st.radio(
     help="Sample: complete labelled example. Demo: adjustable synthetic signal. Upload: your permitted waveform.",
 )
 
+if source == "Use sample recording":
+    st.info("**Fixed benchmark** · Loads the same bundled 30-second CSV and matching reference annotations every time, so results are reproducible.")
+elif source == "Try the interactive demo":
+    st.info("**Live simulation** · Generates a new waveform in memory from the scenario, rhythm, duration, noise, and seed controls in the sidebar.")
+else:
+    st.info("**External waveform** · Uses only the CSV/TXT file and settings you provide. No bundled waveform is substituted for an upload.")
+
 with st.sidebar:
     if source == "Try the interactive demo":
-        st.markdown("##### Synthetic controls")
+        st.markdown("##### Simulation controls")
+        demo_scenario = st.selectbox(
+            "Scenario",
+            ["Clean baseline", "Motion challenge", "Closer rhythms", "Custom experiment"],
+            help="Presets intentionally produce different signals and candidate rhythms.",
+        )
         demo_length = st.select_slider("Recording length", options=[15, 30, 45, 60], value=30, format_func=lambda value: f"{value} seconds")
-        demo_noise = st.select_slider("Noise level", options=["Low", "Standard", "High"], value="Standard")
         sample_rate = st.selectbox("Sample rate", [250, 500, 1_000], index=1, format_func=lambda value: f"{value} Hz")
+        presets = {
+            "Clean baseline": dict(fetal=132.0, maternal=68.0, noise=0.025, seed=3),
+            "Motion challenge": dict(fetal=158.0, maternal=88.0, noise=0.125, seed=29),
+            "Closer rhythms": dict(fetal=116.0, maternal=94.0, noise=0.065, seed=11),
+        }
+        if demo_scenario == "Custom experiment":
+            demo_fetal_bpm = st.slider("Target candidate rhythm", 100, 190, 150, 1, format="%d BPM")
+            demo_maternal_bpm = st.slider("Target maternal rhythm", 50, 110, 78, 1, format="%d BPM")
+            demo_noise_level = st.slider("Noise amplitude", 0.01, 0.15, 0.06, 0.01)
+            demo_seed = st.number_input("Simulation seed", min_value=1, max_value=999, value=17, step=1)
+        else:
+            preset = presets[demo_scenario]
+            demo_fetal_bpm = preset["fetal"]
+            demo_maternal_bpm = preset["maternal"]
+            demo_noise_level = preset["noise"]
+            demo_seed = preset["seed"]
+            st.caption(f"Target rhythms: {demo_fetal_bpm:.0f} fetal-candidate BPM · {demo_maternal_bpm:.0f} maternal BPM · noise {demo_noise_level:.3f}")
         powerline, reference_upload = 50, None
     elif source == "Use sample recording":
         sample_rate, powerline, reference_upload = 500, 50, None
@@ -305,7 +333,7 @@ elif source == "Use sample recording":
     except OSError:
         st.warning("The bundled sample is unavailable. Try the interactive demo instead.")
 else:
-    st.info("Synthetic playground active. Adjust duration and noise in the sidebar to stress-test the workflow.")
+    st.success("Interactive simulation active. Change the scenario or build a custom experiment in the sidebar; the signal and results regenerate immediately.")
     st.button("Upload an ECG recording", on_click=choose_source, args=("Upload signal data",))
 
 raw_signal: np.ndarray | None = None
@@ -318,11 +346,20 @@ analysis_method = ""
 reference_error = None
 
 if source == "Try the interactive demo":
-    noise = {"Low": 0.025, "Standard": 0.045, "High": 0.115}[demo_noise]
-    demo = make_demo_recording(duration_seconds=demo_length, sample_rate=int(sample_rate), noise_level=noise)
+    demo = make_demo_recording(
+        duration_seconds=demo_length,
+        sample_rate=int(sample_rate),
+        maternal_bpm=float(demo_maternal_bpm),
+        fetal_bpm=float(demo_fetal_bpm),
+        noise_level=float(demo_noise_level),
+        seed=int(demo_seed),
+    )
     raw_signal, time = demo["abdominal"], demo["time"]
     reference = np.rint(demo["fetal_reference_seconds"] * sample_rate).astype(int)
-    data_note = f"Interactive synthetic recording · {demo_noise.lower()} noise · no patient data"
+    data_note = (
+        f"Interactive simulation · {demo_scenario} · target fetal-candidate rhythm {demo_fetal_bpm:.0f} BPM · "
+        f"target maternal rhythm {demo_maternal_bpm:.0f} BPM · noise {demo_noise_level:.3f} · seed {int(demo_seed)} · no patient data"
+    )
 else:
     if uploaded is None:
         st.info("Choose a waveform above, or select Use sample recording for a complete example.")
