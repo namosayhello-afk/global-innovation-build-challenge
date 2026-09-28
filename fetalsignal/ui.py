@@ -45,18 +45,18 @@ def inject_theme() -> None:
         [data-testid="stSidebarContent"] { padding-top:1.15rem; }
         .block-container { max-width:1440px; padding-top:1.15rem; padding-bottom:4rem; }
         h1,h2,h3,h4 { letter-spacing:-.035em !important; }
-        h1 { font-size:clamp(2.4rem,5vw,4.8rem) !important; line-height:.98 !important; }
+        h1 { font-size:clamp(2.35rem,4.5vw,4.25rem) !important; line-height:.98 !important; }
         h2 { font-size:clamp(1.65rem,3vw,2.45rem) !important; }
         h3 { font-size:1.22rem !important; }
         p,li { line-height:1.62; }
         .fs-brand { display:flex; align-items:center; gap:.7rem; font-weight:750; letter-spacing:.13em; text-transform:uppercase; font-size:.72rem; color:#d9fdf3; }
         .fs-mark { width:2rem; height:2rem; border-radius:.72rem; display:grid; place-items:center; color:#071018; background:linear-gradient(135deg,var(--fs-mint),var(--fs-violet)); box-shadow:0 0 26px rgba(98,230,189,.22); }
-        .fs-hero { position:relative; overflow:hidden; border:1px solid var(--fs-line); border-radius:28px; padding:clamp(1.5rem,4vw,3.2rem); margin:.8rem 0 1.15rem; background:linear-gradient(145deg,rgba(16,36,51,.96),rgba(8,19,29,.94)); }
+        .fs-hero { position:relative; overflow:hidden; border:1px solid var(--fs-line); border-radius:24px; padding:clamp(1.35rem,3vw,2.4rem); margin:.55rem 0 1rem; background:linear-gradient(145deg,rgba(16,36,51,.96),rgba(8,19,29,.94)); }
         .fs-hero:after { content:""; position:absolute; width:28rem; height:28rem; border-radius:50%; right:-12rem; top:-16rem; background:radial-gradient(circle,rgba(98,230,189,.22),rgba(169,155,255,.08) 46%,transparent 70%); pointer-events:none; }
         .fs-eyebrow { color:var(--fs-mint); font-weight:750; letter-spacing:.13em; text-transform:uppercase; font-size:.72rem; margin-bottom:.7rem; }
-        .fs-title { max-width:870px; margin:0; font-size:clamp(2.45rem,5vw,4.8rem); line-height:1; letter-spacing:-.055em; font-weight:800; }
+        .fs-title { max-width:870px; margin:0; font-size:clamp(2.35rem,4.5vw,4.25rem); line-height:1; letter-spacing:-.055em; font-weight:800; }
         .fs-gradient { background:linear-gradient(90deg,#f4fbff 0%,#91f2d7 42%,#b7aaff 100%); -webkit-background-clip:text; color:transparent; }
-        .fs-subtitle { max-width:780px; color:#b8c9d4; font-size:1.05rem; line-height:1.68; margin:1.2rem 0 1.4rem; }
+        .fs-subtitle { max-width:780px; color:#b8c9d4; font-size:1rem; line-height:1.6; margin:1rem 0 1.15rem; }
         .fs-badges { display:flex; flex-wrap:wrap; gap:.55rem; }
         .fs-badge { border:1px solid var(--fs-line); border-radius:999px; padding:.45rem .7rem; color:#bad0dc; background:rgba(255,255,255,.035); font-size:.74rem; }
         .fs-badge strong { color:#effffc; }
@@ -95,13 +95,15 @@ def inject_theme() -> None:
         .stTabs [aria-selected="true"] { color:var(--fs-mint) !important; background:rgba(98,230,189,.06); }
         .stButton>button,.stDownloadButton>button { min-height:2.7rem; border-radius:11px; border:1px solid rgba(98,230,189,.38); background:linear-gradient(135deg,#75ebc9,#ada0ff); color:#071018; font-weight:800; }
         .stButton>button:hover,.stDownloadButton>button:hover { border-color:#fff; color:#071018; filter:brightness(1.06); }
-        div[data-baseweb="radio"]>div { gap:.55rem; }
+        div[data-baseweb="radio"]>div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem; }
+        div[data-baseweb="radio"] label { min-height:3.15rem; align-items:center; border:1px solid var(--fs-line); border-radius:12px; padding:.65rem .8rem; background:rgba(255,255,255,.025); transition:border-color .15s ease,background .15s ease; }
+        div[data-baseweb="radio"] label:hover { border-color:rgba(98,230,189,.48); background:rgba(98,230,189,.055); }
         .stAlert { border-radius:13px; }
         [data-testid="stExpander"] { border-color:var(--fs-line); border-radius:14px; overflow:hidden; }
         [data-testid="stDataFrame"] { border:1px solid var(--fs-line); border-radius:14px; overflow:hidden; }
         .fs-footer { border-top:1px solid var(--fs-line); padding-top:1.2rem; margin-top:2.5rem; color:#7f96a5; font-size:.75rem; display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
-        @media(max-width:900px) { .fs-grid{grid-template-columns:1fr;} .fs-pipeline{grid-template-columns:1fr;} .fs-pipe:not(:last-child):after{content:"↓";right:50%;top:auto;bottom:-.65rem;} .fs-result-banner{flex-direction:column;} .fs-status{white-space:normal;} }
-        @media(max-width:700px) { .block-container{padding:1rem .85rem 3rem;} .fs-hero{border-radius:20px;padding:1.35rem;} h1{font-size:2.35rem !important;} }
+        @media(max-width:900px) { .fs-grid{grid-template-columns:1fr;} .fs-pipeline{grid-template-columns:1fr;} .fs-pipe:not(:last-child):after{content:"↓";right:50%;top:auto;bottom:-.65rem;} .fs-result-banner{flex-direction:column;} .fs-status{white-space:normal;} div[data-baseweb="radio"]>div{grid-template-columns:1fr;} }
+        @media(max-width:700px) { .block-container{padding:.75rem .85rem 3rem;} .fs-hero{border-radius:18px;padding:1rem;} h1{font-size:2.15rem !important;} .fs-subtitle{font-size:.9rem;line-height:1.5;margin:.75rem 0 .2rem;} .fs-badges{display:none;} .fs-alert{font-size:.76rem;padding:.72rem .8rem;} }
         </style>
         """,
         unsafe_allow_html=True,
@@ -118,7 +120,7 @@ def hero() -> None:
         <section class="fs-hero">
           <div class="fs-eyebrow">Explainable fetal-ECG research workspace</div>
           <h1 class="fs-title">Find the faint signal.<br><span class="fs-gradient">Show every step.</span></h1>
-          <p class="fs-subtitle">Separate a possible fetal cardiac pattern from mixed abdominal ECG, inspect every candidate beat, validate against independent annotations, and export a reproducible research record.</p>
+          <p class="fs-subtitle">Explore how a possible fetal heartbeat can be separated from mixed abdominal ECG. See the steps, check candidate beats, and export the result.</p>
           <div class="fs-badges">
             <span class="fs-badge"><strong>Transparent</strong> signal pipeline</span>
             <span class="fs-badge"><strong>Independent</strong> validation</span>

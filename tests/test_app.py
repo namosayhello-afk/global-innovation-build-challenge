@@ -34,7 +34,7 @@ class DashboardTests(unittest.TestCase):
         app = self.start()
         app.radio(key="source_mode").set_value("Use sample recording").run()
         self.assert_healthy(app)
-        self.assertEqual(app.multiselect[0].value, ["abdominal_ecg"])
+        self.assertEqual(len(app.multiselect), 0)
         self.assertTrue(any(m.label == "F1 score" for m in app.metric))
         app.radio(key="source_mode").set_value("Upload signal data").run()
         self.assert_healthy(app)
@@ -44,7 +44,7 @@ class DashboardTests(unittest.TestCase):
         app = self.start()
         file = io.BytesIO(b"time_seconds,ecg\n0,1\n0.002,2\n")
         file.name = "short.csv"
-        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: file if label.startswith("A.") else None):
+        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: file if "waveform" in label.lower() else None):
             app.radio(key="source_mode").set_value("Upload signal data").run()
         self.assertFalse(app.exception)
         self.assertTrue(app.error)
@@ -55,7 +55,7 @@ class DashboardTests(unittest.TestCase):
         waveform = io.BytesIO((ROOT / "sample_data/fetalsignal_sample_recording.csv").read_bytes())
         waveform.name = "synthetic.csv"
         reference = io.BytesIO(b"beat\n9999\n")
-        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: waveform if label.startswith("A.") else reference):
+        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: waveform if "waveform" in label.lower() else reference):
             app.radio(key="source_mode").set_value("Upload signal data").run()
         self.assert_healthy(app)
         self.assertTrue(any(m.label == "Possible fetal rate" for m in app.metric))
@@ -70,7 +70,7 @@ class DashboardTests(unittest.TestCase):
         frame["lead_3"] = frame.abdominal_ecg
         waveform = io.BytesIO(frame.to_csv(index=False).encode())
         waveform.name = "synthetic_three_leads.csv"
-        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: waveform if label.startswith("A.") else None):
+        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: waveform if "waveform" in label.lower() else None):
             app.radio(key="source_mode").set_value("Upload signal data").run()
             self.assert_healthy(app)
             self.assertTrue(any("3-lead consensus" in c.value for c in app.caption))
@@ -83,7 +83,7 @@ class DashboardTests(unittest.TestCase):
         app = self.start()
         waveform = io.BytesIO((ROOT / "sample_data/fetalsignal_sample_recording.csv").read_bytes())
         waveform.name = "synthetic.csv"
-        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: waveform if label.startswith("A.") else None):
+        with patch("streamlit.file_uploader", side_effect=lambda label, **kwargs: waveform if "waveform" in label.lower() else None):
             app.radio(key="source_mode").set_value("Upload signal data").run()
             app.number_input[0].set_value(250).run()
         self.assertFalse(app.exception)

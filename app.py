@@ -29,7 +29,6 @@ from fetalsignal.ui import (
     hero,
     inject_theme,
     insight_card,
-    onboarding_cards,
     pipeline,
     quality_diagnostics,
     result_banner,
@@ -163,9 +162,9 @@ def guided_walkthrough() -> None:
         step = st.session_state.get("guide_step", 0)
         titles = ["Choose a recording", "Read the snapshot", "Inspect and validate", "Export responsibly"]
         instructions = [
-            "Use **Use sample recording** for a fixed, repeatable benchmark with separate reference beats. **Try the interactive demo** generates a configurable scenario with its own rhythms, noise, duration, and seed. **Upload signal data** analyzes only the permitted CSV/TXT waveform you provide.",
+            "Choose **Quick sample** for an instant, labelled example. Choose **Simulation** to change rhythm, noise, and duration. Choose **Upload** to analyze only the permitted CSV/TXT waveform you provide.",
             "Read the four result cards as research diagnostics. Candidate BPM comes from candidate-beat spacing. The quality number is a signal heuristic—not accuracy, medical confidence, or a patient score.",
-            "Use **Overview** to inspect peaks, **Signal Studio** to see the separation layers, and **Validation** to compare with independent reference annotations. A visually convincing waveform is not enough on its own.",
+            "Use **Overview** to inspect peaks, **How it works** to see the separation layers, and **Check accuracy** to compare with independent reference annotations. A visually convincing waveform is not enough on its own.",
             "Download the processed waveform, candidate locations, report, or JSON manifest. Keep the research-only limitation with every exported or presented result.",
         ]
         st.caption(f"GUIDED TOUR · {step + 1} OF 4")
@@ -237,60 +236,41 @@ with st.sidebar:
 st.session_state.setdefault("source_mode", "Use sample recording")
 hero()
 safety_note()
-guided_walkthrough()
-onboarding_cards()
 
-section("Start here", "Choose the research experience", "Each source now has a different purpose: fixed benchmark, configurable simulation, or external research data.")
+section("Start here", "How would you like to begin?", "Choose one path. The sample works instantly; no setup is required.")
+source_labels = {
+    "Use sample recording": "Quick sample · ready now",
+    "Try the interactive demo": "Simulation · change the signal",
+    "Upload signal data": "Upload · analyze my file",
+}
 source = st.radio(
-    "Recording source",
+    "Choose a starting point",
     ["Use sample recording", "Try the interactive demo", "Upload signal data"],
     key="source_mode",
     horizontal=True,
+    format_func=source_labels.get,
     help="Sample: complete labelled example. Demo: adjustable synthetic signal. Upload: your permitted waveform.",
 )
 
 if source == "Use sample recording":
-    st.info("**Fixed benchmark** · Loads the same bundled 30-second CSV and matching reference annotations every time, so results are reproducible.")
+    st.success("**Ready.** The labelled sample is loaded and analyzed automatically. Scroll to the result snapshot below.")
 elif source == "Try the interactive demo":
-    st.info("**Live simulation** · Generates a new waveform in memory from the scenario, rhythm, duration, noise, and seed controls in the sidebar.")
+    st.info("**Build a simulation.** Choose a preset below or create your own signal experiment.")
 else:
-    st.info("**External waveform** · Uses only the CSV/TXT file and settings you provide. No bundled waveform is substituted for an upload.")
+    st.info("**Analyze your file.** The app will use only the waveform and settings you provide.")
+
+guided_walkthrough()
 
 with st.sidebar:
-    if source == "Try the interactive demo":
-        st.markdown("##### Simulation controls")
-        demo_scenario = st.selectbox(
-            "Scenario",
-            ["Clean baseline", "Motion challenge", "Closer rhythms", "Custom experiment"],
-            help="Presets intentionally produce different signals and candidate rhythms.",
-        )
-        demo_length = st.select_slider("Recording length", options=[15, 30, 45, 60], value=30, format_func=lambda value: f"{value} seconds")
-        sample_rate = st.selectbox("Sample rate", [250, 500, 1_000], index=1, format_func=lambda value: f"{value} Hz")
-        presets = {
-            "Clean baseline": dict(fetal=132.0, maternal=68.0, noise=0.025, seed=3),
-            "Motion challenge": dict(fetal=158.0, maternal=88.0, noise=0.125, seed=29),
-            "Closer rhythms": dict(fetal=116.0, maternal=94.0, noise=0.065, seed=11),
-        }
-        if demo_scenario == "Custom experiment":
-            demo_fetal_bpm = st.slider("Target candidate rhythm", 100, 190, 150, 1, format="%d BPM")
-            demo_maternal_bpm = st.slider("Target maternal rhythm", 50, 110, 78, 1, format="%d BPM")
-            demo_noise_level = st.slider("Noise amplitude", 0.01, 0.15, 0.06, 0.01)
-            demo_seed = st.number_input("Simulation seed", min_value=1, max_value=999, value=17, step=1)
-        else:
-            preset = presets[demo_scenario]
-            demo_fetal_bpm = preset["fetal"]
-            demo_maternal_bpm = preset["maternal"]
-            demo_noise_level = preset["noise"]
-            demo_seed = preset["seed"]
-            st.caption(f"Target rhythms: {demo_fetal_bpm:.0f} fetal-candidate BPM · {demo_maternal_bpm:.0f} maternal BPM · noise {demo_noise_level:.3f}")
-        powerline, reference_upload = 50, None
-    elif source == "Use sample recording":
-        sample_rate, powerline, reference_upload = 500, 50, None
+    if source == "Use sample recording":
         st.success("Labelled synthetic sample ready")
         st.caption("30 seconds · 500 Hz · one abdominal lead · independent reference beats")
+    elif source == "Try the interactive demo":
+        st.info("Simulation mode active")
+        st.caption("Controls are in the main workspace so they are easy to find on desktop and mobile.")
     else:
-        sample_rate, powerline, reference_upload = 500, 50, None
-        st.info("Finish the numbered setup in the main workspace.")
+        st.info("Upload mode active")
+        st.caption("Your data remains separate from the built-in sample.")
     st.divider()
     st.markdown("##### Research glossary")
     with st.expander("ECG and signal terms"):
@@ -301,19 +281,51 @@ with st.sidebar:
 uploaded = None
 reference_units = "Seconds"
 reference_column = None
+sample_rate, powerline, reference_upload = 500, 50, None
 
-if source == "Upload signal data":
-    section("Upload", "Configure a permitted waveform", "Original sample values are required. Screenshots, audio, PDFs, and reported BPM values cannot be analyzed as ECG waveforms.")
+if source == "Try the interactive demo":
+    section("Simulation setup", "Choose a scenario", "Every change regenerates the synthetic waveform immediately. Nothing here represents a patient.")
+    scenario_col, length_col, rate_col = st.columns(3)
+    demo_scenario = scenario_col.selectbox(
+        "Scenario",
+        ["Clean baseline", "Motion challenge", "Closer rhythms", "Custom experiment"],
+        help="Each preset intentionally produces a different waveform and candidate rhythm.",
+    )
+    demo_length = length_col.select_slider("Duration", options=[15, 30, 45, 60], value=30, format_func=lambda value: f"{value} seconds")
+    sample_rate = rate_col.selectbox("Samples per second", [250, 500, 1_000], index=1, format_func=lambda value: f"{value} Hz")
+    presets = {
+        "Clean baseline": dict(fetal=132.0, maternal=68.0, noise=0.025, seed=3),
+        "Motion challenge": dict(fetal=158.0, maternal=88.0, noise=0.125, seed=29),
+        "Closer rhythms": dict(fetal=116.0, maternal=94.0, noise=0.065, seed=11),
+    }
+    if demo_scenario == "Custom experiment":
+        custom_one, custom_two = st.columns(2)
+        demo_fetal_bpm = custom_one.slider("Candidate rhythm", 100, 190, 150, 1, format="%d BPM")
+        demo_maternal_bpm = custom_two.slider("Maternal rhythm", 50, 110, 78, 1, format="%d BPM")
+        advanced_one, advanced_two = st.columns(2)
+        demo_noise_level = advanced_one.slider("Noise level", 0.01, 0.15, 0.06, 0.01)
+        demo_seed = advanced_two.number_input("Repeatable seed", min_value=1, max_value=999, value=17, step=1)
+    else:
+        preset = presets[demo_scenario]
+        demo_fetal_bpm = preset["fetal"]
+        demo_maternal_bpm = preset["maternal"]
+        demo_noise_level = preset["noise"]
+        demo_seed = preset["seed"]
+        st.caption(f"Preset: {demo_fetal_bpm:.0f} candidate BPM · {demo_maternal_bpm:.0f} maternal BPM · noise {demo_noise_level:.3f}")
+    st.success("Simulation ready. Results below update automatically.")
+    st.button("Use my own ECG file instead", on_click=choose_source, args=("Upload signal data",))
+elif source == "Upload signal data":
+    section("Upload", "Add a permitted waveform", "Only two items are required: the file and its sampling rate. Everything else is optional or detected from the file.")
     sample_downloads()
     uploaded = st.file_uploader(
-        "A. Choose your waveform file",
+        "1. Choose a CSV or TXT waveform",
         type=["csv", "txt"],
         help="A header row and one sample per row; comma, tab, semicolon, or space separated. Maximum 25 MB and 600,000 samples.",
     )
     setting_one, setting_two = st.columns(2)
-    sample_rate = setting_one.number_input("B. Sampling rate (Hz)", min_value=100, max_value=2_000, value=500, step=1)
-    powerline = setting_two.selectbox("Electrical interference", [50, 60], format_func=lambda value: f"{value} Hz")
-    with st.expander("C. Add independent reference beats (optional)"):
+    sample_rate = setting_one.number_input("2. Samples per second (Hz)", min_value=100, max_value=2_000, value=500, step=1, help="Use the sampling rate documented with your recording. If the file includes time_seconds, the app checks this automatically.")
+    powerline = setting_two.selectbox("Power-line frequency", [50, 60], format_func=lambda value: f"{value} Hz", help="Most countries use 50 Hz; North America commonly uses 60 Hz.")
+    with st.expander("Optional: add reference beats to check accuracy"):
         st.caption("Reference annotations must belong to this exact recording. They are used only for validation.")
         reference_upload = st.file_uploader("Reference-beat file", type=["csv", "txt"])
         reference_units = st.selectbox("Reference units", ["Seconds", "Sample indices (start at 0)"])
@@ -332,9 +344,6 @@ elif source == "Use sample recording":
         reference_upload = io.BytesIO((ROOT / "sample_data/fetalsignal_sample_reference_beats.csv").read_bytes())
     except OSError:
         st.warning("The bundled sample is unavailable. Try the interactive demo instead.")
-else:
-    st.success("Interactive simulation active. Change the scenario or build a custom experiment in the sidebar; the signal and results regenerate immediately.")
-    st.button("Upload an ECG recording", on_click=choose_source, args=("Upload signal data",))
 
 raw_signal: np.ndarray | None = None
 time: np.ndarray | None = None
@@ -360,9 +369,23 @@ if source == "Try the interactive demo":
         f"Interactive simulation · {demo_scenario} · target fetal-candidate rhythm {demo_fetal_bpm:.0f} BPM · "
         f"target maternal rhythm {demo_maternal_bpm:.0f} BPM · noise {demo_noise_level:.3f} · seed {int(demo_seed)} · no patient data"
     )
+elif source == "Use sample recording":
+    if uploaded is not None:
+        try:
+            uploaded_frame = read_table(uploaded)
+            raw_signal = extract_column(uploaded_frame, "abdominal_ecg", sample_rate)
+            time, time_note = infer_time(uploaded_frame, raw_signal.size, sample_rate)
+            with st.spinner("Preparing the labelled example…"):
+                precomputed_result = extract_fetal_signal(raw_signal, sample_rate, powerline)
+            reference = load_reference(reference_upload, sample_rate, raw_signal.size, reference_units, reference_column)
+            analysis_method = "Single-lead signal-processing baseline"
+            data_note = f"Labelled synthetic sample · abdominal_ecg · {time_note}"
+        except ValueError as error:
+            raw_signal, time, precomputed_result = None, None, None
+            st.error(f"The bundled sample could not be prepared: {error}")
 else:
     if uploaded is None:
-        st.info("Choose a waveform above, or select Use sample recording for a complete example.")
+        st.info("Choose a waveform above, or select Quick sample for a complete example.")
     else:
         try:
             uploaded_frame = read_table(uploaded)
@@ -370,7 +393,7 @@ else:
             if not choices:
                 raise ValueError("No numeric signal columns found. Add headers and numeric ECG samples.")
             selected_columns = st.multiselect(
-                "D. Select abdominal ECG lead(s)",
+                "3. Choose the ECG channel(s)",
                 choices,
                 default=choices[: min(4, len(choices))],
                 max_selections=8,
@@ -422,7 +445,7 @@ if raw_signal is not None and time is not None:
         precomputed_fetal_peaks is not None,
     )
 
-    section("Research snapshot", "Understand the result before opening the charts")
+    section("Your result", "See what the app found", "Start with the summary. Open the detailed views only when you need them.")
     result_banner(explanation_title, explanation_text, status, status_class)
     st.caption(data_note)
     st.caption(f"{raw_signal.size / sample_rate:.1f} seconds · {sample_rate:g} samples/second · {analysis_method}")
@@ -443,8 +466,8 @@ if raw_signal is not None and time is not None:
     with insight_two:
         insight_card("Best next action", next_step)
 
-    section("Explore", "Move from signal to evidence", "Each view answers a different research question. Keep candidate detection, per-recording validation, and cohort evidence conceptually separate.")
-    overview_tab, studio_tab, validation_tab, evidence_tab, method_tab = st.tabs(["Overview", "Signal Studio", "Validation", "Evidence", "Method"])
+    section("Explore", "Understand your result", "Start with Overview, then open the other views for more detail.")
+    overview_tab, studio_tab, validation_tab, evidence_tab, method_tab = st.tabs(["Overview", "How it works", "Check accuracy", "Public testing", "Technical method"])
 
     preview_seconds = min(15, int(np.ceil(time[-1] - time[0])))
     range_limit = float(time[-1] - preview_seconds)
@@ -489,8 +512,8 @@ if raw_signal is not None and time is not None:
         st.caption("These diagnostics describe algorithmic plausibility, regularity, and residual energy. They are not calibrated clinical confidence scores.")
 
     with studio_tab:
-        st.markdown("### Signal-separation studio")
-        st.caption("The same inspection window is used across every layer so features line up in time. Downloads contain the full recording.")
+        st.markdown("### How the signal is separated")
+        st.caption("Follow the same time window through each stage. Downloads still contain the full recording.")
         cleaned_col, maternal_col = st.columns(2)
         with cleaned_col:
             st.markdown("#### 1 · Cleaned mixture")
@@ -510,7 +533,7 @@ if raw_signal is not None and time is not None:
         download_four.download_button("Analysis manifest", make_manifest(data_note, sample_rate, fetal_bpm, maternal_bpm, result.quality_score, fetal_peaks.size, analysis_method), "fetalsignal_manifest.json", "application/json", width="stretch")
 
     with validation_tab:
-        st.markdown("### Compare candidates with independent references")
+        st.markdown("### Check candidate beats against a trusted reference")
         st.caption("A candidate matches a reference when it falls within a pre-declared 80 ms window. Matching is one-to-one.")
         if reference is not None and reference.size:
             validation = match_peaks(fetal_peaks, reference, sample_rate)
@@ -533,7 +556,7 @@ if raw_signal is not None and time is not None:
             insight_card("What credible validation requires", "Keep references separate from input signals, declare the matching tolerance before testing, document preprocessing, and evaluate recordings that were not used to tune the pipeline.")
 
     with evidence_tab:
-        st.markdown("### Public-data evaluation")
+        st.markdown("### Results from separate public-data tests")
         evaluation = load_evaluation_report()
         if evaluation is None:
             st.info("The bundled evaluation report is unavailable in this deployment.")
@@ -585,7 +608,7 @@ with st.expander("Questions, file requirements, and troubleshooting"):
 
 **Does an upload train the model?** No. The bundled model is fixed; uploads are not used for retraining.
 
-**What is the difference between Validation and Evidence?** Validation evaluates the current recording only when matching references are supplied. Evidence reports a separate five-record public-data experiment.
+**What is the difference between Check accuracy and Public testing?** Check accuracy evaluates the current recording only when matching references are supplied. Public testing reports a separate five-record public-data experiment.
 """)
 
 footer()
